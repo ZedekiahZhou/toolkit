@@ -1,0 +1,1 @@
+myjob | grep JobId | awk -v FS="=" -v ORS=" " '{gsub(" .+", "", $2);print $2}'

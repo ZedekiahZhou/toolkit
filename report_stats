@@ -1,0 +1,43 @@
+#!/bin/bash
+dir_mapping_log=../03_Sites/mapping-info/
+dir_sites=../03_Sites/
+dir_fq=../02_Clean/
+sam=$1
+
+# preprocessing stats
+echo $sam
+echo -e "Samples:\t${sam}"
+
+raw=`cat log/glo_${sam}.err | grep "Total reads processed" | awk '{print $4}'`
+echo -e "Raw reads:\t${raw}"
+
+dup=`cat log/glo_${sam}.err | grep "duplicated records removed" | awk '{print $2}'`
+echo -e "Duplicated reads:\t${dup}"
+
+echo "Tagged reads:"
+cat log/glo_${sam}.out | grep "eads" | awk 'NR!=1 && NR!=2' | sed -E 's/ {2,}/\t/' | grep ":"
+echo ""
+
+# Mapping stats
+input=`cat ${dir_mapping_log}/${sam}_rmtag.Log.final.out | grep "Number of input reads" | sed 's/^.*\t//g'`
+echo -e "Number of input reads for mapping:\t${input}"
+
+m1=`cat ${dir_mapping_log}/${sam}_rmtag.Log.final.out | grep "Uniquely mapped reads number" | sed 's/^.*\t//g'`
+m2=`cat ${dir_mapping_log}/${sam}_rmtag_rvs.Log.final.out | grep "Uniquely mapped reads number" | sed 's/^.*\t//g'`
+m3=`cat ${dir_mapping_log}/${sam}_rmtag*.sam.output | grep "Reported" | sed 's/Reported //g' | sed 's/ alignments//g'`
+echo -e "Uniquely mapped reads number to genome:\t${m1}"
+echo -e "Uniquely mapped reads number to rvs:\t${m2}"
+echo -e "Uniquely mapped reads number to tf:\t${m3}"
+echo -e "Uniquely mapped reads number (Total):\t$[${m1}+${m2}+${m3}]"
+
+# m6A stats
+cat ${dir_sites}/${sam}_rmtag.totalCR.txt | grep Median | awk 'BEGIN {min=1;max=0} { if ($2>max) {max=$2}; if ($2<min) {min=$2}; sum+=$2} END {printf "Min CR:\t%s\n",min; printf "Max CR:\t%s\n",max; printf "Mean CR:\t%s\n",sum/NR}'
+s1=`cat ${dir_sites}/${sam}_rmtag.totalm6A.FDR.csv | wc -l`
+echo -e "Number of m6A sites:\t$[${s1}-1]"
+
+# Soft clipped stats
+echo -e "Mapped reads:\t`samtools view -@ 4 -c ../03_Sites/${sam}_rmtag_merged.sorted.bam`"
+echo -e "Non-softclipped reads:\t`samtools view -@ 4 -c ../04_NoSC/${sam}_NoSC_merged.sorted.bam`"
+
+echo ""
+echo ""

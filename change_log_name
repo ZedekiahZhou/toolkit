@@ -1,0 +1,13 @@
+#!/bin/bash
+if [ ! -d "./log/" ]; then mkdir ./log/; fi
+
+pattern=$1
+prx=$2
+for file in ${pattern}*.out
+do
+  sam=`head -1 $file`
+  echo "mv $file log/${prx}_${sam}.out"
+  mv $file log/${prx}_${sam}.out
+  echo "mv ${file/.out/.err} log/${prx}_${sam}.err"
+  mv ${file/.out/.err} log/${prx}_${sam}.err
+done

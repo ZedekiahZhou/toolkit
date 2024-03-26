@@ -1,0 +1,1 @@
+pkujob | awk 'BEGIN {FS="\n"; RS=""; ORS="\n\n"} /zhouzhe/'

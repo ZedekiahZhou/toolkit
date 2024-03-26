@@ -1,0 +1,5 @@
+# Yilab NAS
+rsyns -e "ssh -p 7985" -avzu ./Sam_Info.tsv ZhouZhe@162.105.250.247:/volume1/YiLab_1/ZhouZhe
+
+# ossutils
+./ossutil64 cp -rf oss_path local_dir -u --jobs=3 --parallel=16 -e oss-cn-hangzhou.aliyuncs.com -i accessKeyID -k accessKeySecret
