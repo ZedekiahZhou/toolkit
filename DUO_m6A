@@ -1,6 +1,7 @@
 #!/bin/bash
 # Author: Zhou Zhe
 # Date: Mar 21, 2024
+# Program: Pipeline 
 
 ARGS=$(getopt -o 'hi:g:p:' -l 'help,inputfile:,species:,thread:,prx:,ds_rate:,untreat,test' -- "$@")
 if [ $? != 0 ] ; then echo "Parse error! Terminating..." >&2 ; exit 1 ; fi
@@ -81,11 +82,11 @@ if [[ ! -d "../04_NoSC" ]]; then mkdir ../04_NoSC; fi
 # I. run GLORI --------
 ## 01. glori preprocessing
 echo -e "\n[ `date` ]: Preprocessing --------"
-glori -i ${inputfile} -g ${species} -m 0 --fastqc --only_clean --gzip 
+glori -i ${inputfile} -g ${species} -m 3 --umi5_len 3 --fastqc --only_clean --gzip 
 
 ## 02. remove tag
 echo -e "\n[ `date` ]: Remove Tag --------"
-cutadapt -j 0 -g "TGACGCTGCCGACGATC;rightmost" -m 25 -O 17 -e 0.2 -o ../02_Clean/${prx}_rmtag.fq --info-file ../02_Clean/${prx}_rmtag.info --discard-untrimmed ../02_Clean/${prx}_clean.fq.gz
+cutadapt -j 0 -g "TGACGCTGCCGACGATC;rightmost" -m 25 -O 17 -e 0.2 -o ../02_Clean/${prx}_rmtag.fq --info-file ../02_Clean/${prx}_rmtag.info ../02_Clean/${prx}_clean.fq.gz
 if [[ ! -d "../fastqc/rmtag" ]]; then mkdir ../fastqc/rmtag; fi
 fastqc ../02_Clean/${prx}_rmtag.fq --thread 20 -q -o ../fastqc/rmtag/
 
@@ -94,16 +95,13 @@ echo -e "\n[ `date` ]: Run GLORI --------"
 if [ `echo ${prx} | grep "\-UN"` ]; then
   glori -i ../02_Clean/${prx}_rmtag.fq -g ${species} --prx ${prx} --combine --only_glori --untreat
 else
-  glori -i ../02_Clean/${prx}_rmtag.fq -g ${species} --prx ${prx} --combine --only_glori --m6Am
+  glori -i ../02_Clean/${prx}_rmtag.fq -g ${species} --prx ${prx} --combine --only_glori
 fi
 
 ## 04. remove soft clipped reads
 echo -e "\n[ `date` ]: Get Non-soft-clipped reads --------"
-samtools view -@ 4 -h ../03_Sites/${prx}_merged.sorted.bam | \
-  awk '/^@/ || ($2==0 && $6!~"^[0-9]+S") || ($2==16&&$6!~"[0-9]+S$")' | \
-  samtools view -@ 4 -b > ../04_NoSC/${prx}_NoSC_merged.sorted.bam
-samtools index ../04_NoSC/${prx}_NoSC_merged.sorted.bam
-
+ln -s ../03_Sites/${prx}_merged.sorted.bam ../04_NoSC/${prx}_NoSC_merged.sorted.bam
+ln -s ../03_Sites/${prx}_merged.sorted.bam.bai ../04_NoSC/${prx}_NoSC_merged.sorted.bam.bai
 
 # II. QC --------
 outdir=../04_NoSC/QC/
@@ -153,13 +151,4 @@ if [ `echo ${prx} | grep -v "\-UN"` ]; then
   cat ${outdir}/${prx}_raw_sites.csv | awk -v OFS='\t' 'NR!=1 {print $1, $2-3, $2+2, $4, 0, $3}'  > ${outdir}/${prx}_raw_sites_len5.bed
   bedtools getfasta -s -fi ${genome2} -bed ${outdir}/${prx}_raw_sites_len5.bed -bedOut > ${outdir}/${prx}_raw_sites_len5_motif.bed
   rm -rf ${outdir}/${prx}_raw_sites_len5.bed
-
-  # 03. pileup for m6A sites (used A sites with totalCov >= 15 and ACov > 0)
-  echo -e "\n[ `date` ]: Pileup --------"
-  samtools view -h ../04_NoSC/${prx}_NoSC_merged.sorted.bam | \
-    awk '/^@/ {print $0} $2==0 {n = gsub("A", "", $10); if (n<=3) print $0} $2==16 {n = gsub("T", "", $10); if (n<=3) print $0}' | \
-    samtools view -@ 4 -b > ../04_NoSC/${prx}_NoSC_merged.sorted.signal.bam
-  cat ${outdir}/${prx}_raw_sites.csv | awk -v OFS='\t' 'NR!=1 {gsub("$", "_AG_converted", $1); print $1, $2-1, $2, $4, 0, $3}'  > ${outdir}/${prx}_raw_sites.bed
-  samtools mpileup -BQ0 -d 10000000 -l ${outdir}/${prx}_raw_sites.bed -o ${outdir}/${prx}_raw_sites.pileup -f ${genome} ../04_NoSC/${prx}_NoSC_merged.sorted.signal.bam
-  rm -rf ${outdir}/${prx}_raw_sites.bed
 fi
