@@ -8,7 +8,7 @@ if [ $? != 0 ] ; then echo "Parse error! Terminating..." >&2 ; exit 1 ; fi
 eval set -- "$ARGS"
 
 USAGE='
-Program: Call TSS and m6Am for DUO-m6Am data. This program should be called in src/, using ../01_RawData/*_2.fq.gz as input
+Program: Call m6A for DUO-m6A data. This program should be called in src/, using ../01_RawData/*_2.fq.gz as input
 Version: 0.1.0
 
 usage: DUO_m6Am [options]

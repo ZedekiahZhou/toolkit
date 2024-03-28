@@ -156,8 +156,8 @@ if [ `echo ${prx} | grep -v "\-UN"` ]; then
 
   # 03. pileup for m6A sites (used A sites with totalCov >= 15 and ACov > 0)
   echo -e "\n[ `date` ]: Pileup --------"
-  samtools view -h ../04_NoSC/${prx}_NoSC_merged.sorted.bam | \
-    awk '/^@/ {print $0} $2==0 {n = gsub("A", "", $10); if (n<=3) print $0} $2==16 {n = gsub("T", "", $10); if (n<=3) print $0}' | \
+  samtools view -@ 4 -h ../04_NoSC/${prx}_NoSC_merged.sorted.bam | \
+    awk 'BEGIN {OFS="\t"} /^@/ {print $0} $2==0 {n = gsub("A", "", $10); if (n<=3) print $0} $2==16 {n = gsub("T", "", $10); if (n<=3) print $0}' | \
     samtools view -@ 4 -b > ../04_NoSC/${prx}_NoSC_merged.sorted.signal.bam
   cat ${outdir}/${prx}_raw_sites.csv | awk -v OFS='\t' 'NR!=1 {gsub("$", "_AG_converted", $1); print $1, $2-1, $2, $4, 0, $3}'  > ${outdir}/${prx}_raw_sites.bed
   samtools mpileup -BQ0 -d 10000000 -l ${outdir}/${prx}_raw_sites.bed -o ${outdir}/${prx}_raw_sites.pileup -f ${genome} ../04_NoSC/${prx}_NoSC_merged.sorted.signal.bam
