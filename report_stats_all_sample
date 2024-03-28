@@ -1,0 +1,20 @@
+for file in $@
+do
+  prx=`basename ${file} | sed -E 's/(_L[0-9]_[12])?.f(ast)?q(.gz)?//'`
+  ~/bin/report_stats $prx > ../04_NoSC/QC/${prx}_QC_stats.txt
+done
+
+prx=`basename $1 | sed -E 's/(_L[0-9]_[12])?.f(ast)?q(.gz)?//'`
+cat ../04_NoSC/QC/${prx}_QC_stats.txt | cut -f1 > ../04_NoSC/QC/tmp_QC_stats.txt
+
+for file in $@
+do
+  prx=`basename ${file} | sed -E 's/(_L[0-9]_[12])?.f(ast)?q(.gz)?//'`
+  join -t $'\t' ../04_NoSC/QC/tmp_QC_stats.txt ../04_NoSC/QC/${prx}_QC_stats.txt > ../04_NoSC/QC/All_QC_stats.txt
+  rm -rf ../04_NoSC/QC/tmp_QC_stats.txt
+  cp ../04_NoSC/QC/All_QC_stats.txt ../04_NoSC/QC/tmp_QC_stats.txt
+done
+
+rm -rf ../04_NoSC/QC/tmp_QC_stats.txt
+
+  
