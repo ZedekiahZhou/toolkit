@@ -74,9 +74,12 @@ esac
 
 # for file in ../01_RawData/*_2.fq.gz
 echo $prx
-if [[ ! -d "../02_Clean" ]]; then mkdir ../02_Clean; fi
-if [[ ! -d "../03_Sites" ]]; then mkdir ../03_Sites; fi
-if [[ ! -d "../04_NoSC" ]]; then mkdir ../04_NoSC; fi
+dir_clean="../02_Clean/"
+dir_sites="../03_Sites/"
+dir_nosc="../04_NoSC/"
+if [[ ! -d ${dir_clean} ]]; then mkdir ${dir_clean}; fi
+if [[ ! -d ${dir_sites} ]]; then mkdir ${dir_sites}; fi
+if [[ ! -d ${dir_nosc} ]]; then mkdir ${dir_nosc}; fi
 
 # I. run GLORI --------
 ## 01. glori preprocessing
@@ -85,28 +88,28 @@ glori -i ${inputfile} -g ${species} -m 0 --fastqc --only_clean --gzip
 
 ## 02. remove tag
 echo -e "\n[ `date` ]: Remove Tag --------"
-cutadapt -j 0 -g "TGACGCTGCCGACGATC;rightmost" -m 25 -O 17 -e 0.2 -o ../02_Clean/${prx}_rmtag.fq --info-file ../02_Clean/${prx}_rmtag.info --discard-untrimmed ../02_Clean/${prx}_clean.fq.gz
+cutadapt -j 0 -g "TGACGCTGCCGACGATC;rightmost" -m 25 -O 17 -e 0.2 -o ${dir_clean}${prx}_rmtag.fq --info-file ${dir_clean}${prx}_rmtag.info --discard-untrimmed ${dir_clean}${prx}_clean.fq.gz
 if [[ ! -d "../fastqc/rmtag" ]]; then mkdir ../fastqc/rmtag; fi
-fastqc ../02_Clean/${prx}_rmtag.fq --thread 20 -q -o ../fastqc/rmtag/
+fastqc ${dir_clean}${prx}_rmtag.fq --thread 20 -q -o ../fastqc/rmtag/
 
 ## 03. run glori, call all A sites (almostly)
 echo -e "\n[ `date` ]: Run GLORI --------"
 if [ `echo ${prx} | grep "\-UN"` ]; then
-  glori -i ../02_Clean/${prx}_rmtag.fq -g ${species} --prx ${prx} --combine --only_glori --untreat
+  glori -i ${dir_clean}${prx}_rmtag.fq -g ${species} --prx ${prx} --combine --only_glori --untreat
 else
-  glori -i ../02_Clean/${prx}_rmtag.fq -g ${species} --prx ${prx} --combine --only_glori --m6Am
+  glori -i ${dir_clean}${prx}_rmtag.fq -g ${species} --prx ${prx} --combine --only_glori --m6Am
 fi
 
 ## 04. remove soft clipped reads
 echo -e "\n[ `date` ]: Get Non-soft-clipped reads --------"
-samtools view -@ 4 -h ../03_Sites/${prx}_merged.sorted.bam | \
+samtools view -@ 4 -h ${dir_sites}/${prx}_merged.sorted.bam | \
   awk '/^@/ || ($2==0 && $6!~"^[0-9]+S") || ($2==16&&$6!~"[0-9]+S$")' | \
-  samtools view -@ 4 -b > ../04_NoSC/${prx}_NoSC_merged.sorted.bam
-samtools index ../04_NoSC/${prx}_NoSC_merged.sorted.bam
+  samtools view -@ 4 -b > ${dir_nosc}/${prx}_NoSC_merged.sorted.bam
+samtools index ${dir_nosc}/${prx}_NoSC_merged.sorted.bam
 
 
 # II. QC --------
-outdir=../04_NoSC/QC/
+outdir=${dir_nosc}/QC/
 if [[ ! -d $outdir ]]; then mkdir $outdir; fi
 
 # 01. get QC report
@@ -115,14 +118,14 @@ echo -e "\n[ `date` ]: Get QC reports --------"
 
 # 02. get alignments length
 echo -e "\n[ `date` ]: Get alignments length --------"
-samtools view -s ${subsample_rate} ../04_NoSC/${prx}_NoSC_merged.sorted.bam -b > ${outdir}/${prx}_subsample_${subsample_rate}.bam
+samtools view -s ${subsample_rate} ${dir_nosc}/${prx}_NoSC_merged.sorted.bam -b > ${outdir}/${prx}_subsample_${subsample_rate}.bam
 samtools index ${outdir}/${prx}_subsample_${subsample_rate}.bam
 python /lustre2/chengqiyi_pkuhpc/zhouzhe/bin/get_align_length.py ${outdir}/${prx}_subsample_${subsample_rate}.bam ${outdir}/${prx}_align_len.csv
 
 # 03. get read distribution (qualimap)
 echo -e "\n[ `date` ]: Qualimap --------"
 mkdir -p ${outdir}/qualimap_${prx}
-qualimap rnaseq -outdir ${outdir}/qualimap_${prx} -bam ../04_NoSC/${prx}_NoSC_merged.sorted.bam -gtf $gtf --java-mem-size=32G
+qualimap rnaseq -outdir ${outdir}/qualimap_${prx} -bam ${dir_nosc}/${prx}_NoSC_merged.sorted.bam -gtf $gtf --java-mem-size=32G
 
 # 04. get distribution of 5p sites (metaPlotR)
 echo -e "\n[ `date` ]: MetaPlotR --------"
@@ -139,27 +142,29 @@ source activate zzhou_bio
 
 
 # III. TSS and m6Am
-outdir="../04_NoSC/m6Am/"
+outdir="${dir_nosc}/m6Am/"
 if [[ ! -d $outdir ]]; then mkdir $outdir; fi
 
 # 01. get TSS
 echo -e "\n[ `date` ]: Get TSS --------"
-get_TSS ../04_NoSC/${prx}_NoSC_merged.sorted.bam
+get_TSS ${dir_nosc}/${prx}_NoSC_merged.sorted.bam
+bedtools getfasta -s -fi ${genome2} -bed ${dir_nosc}/${prx}_NoSC_merged.sorted.bam.ctss.sorted.bed -bedOut > ${outdir}/${prx}_TSS.bed
+rm -rf ${dir_nosc}/${prx}_NoSC_merged.sorted.bam.ctss.sorted.bed
 
 if [ `echo ${prx} | grep -v "\-UN"` ]; then
   # 02. get 5 bases around m6A sites
   echo -e "\n[ `date` ]: Get 5 bases around sites --------"
-  cat ../03_Sites/${prx}.totalm6A.FDR.csv | awk '$6>=15 && $7>0' > ${outdir}/${prx}_raw_sites.csv
+  cat ${dir_sites}/${prx}.totalm6A.FDR.csv | awk '$6>=15 && $7>0' > ${outdir}/${prx}_raw_sites.csv
   cat ${outdir}/${prx}_raw_sites.csv | awk -v OFS='\t' 'NR!=1 {print $1, $2-3, $2+2, $4, 0, $3}'  > ${outdir}/${prx}_raw_sites_len5.bed
   bedtools getfasta -s -fi ${genome2} -bed ${outdir}/${prx}_raw_sites_len5.bed -bedOut > ${outdir}/${prx}_raw_sites_len5_motif.bed
   rm -rf ${outdir}/${prx}_raw_sites_len5.bed
 
   # 03. pileup for m6A sites (used A sites with totalCov >= 15 and ACov > 0)
   echo -e "\n[ `date` ]: Pileup --------"
-  samtools view -@ 4 -h ../04_NoSC/${prx}_NoSC_merged.sorted.bam | \
+  samtools view -@ 4 -h ${dir_nosc}/${prx}_NoSC_merged.sorted.bam | \
     awk 'BEGIN {OFS="\t"} /^@/ {print $0} $2==0 {n = gsub("A", "A", $10); if (n<=3) print $0} $2==16 {n = gsub("T", "T", $10); if (n<=3) print $0}' | \
-    samtools view -@ 4 -b > ../04_NoSC/${prx}_NoSC_merged.sorted.signal.bam
+    samtools view -@ 4 -b > ${dir_nosc}/${prx}_NoSC_merged.sorted.signal.bam
   cat ${outdir}/${prx}_raw_sites.csv | awk -v OFS='\t' 'NR!=1 {gsub("$", "_AG_converted", $1); print $1, $2-1, $2, $4, 0, $3}' > ${outdir}/${prx}_raw_sites.bed
-  samtools mpileup -BQ0 -d 10000000 -l ${outdir}/${prx}_raw_sites.bed -o ${outdir}/${prx}_raw_sites.pileup -f ${genome} ../04_NoSC/${prx}_NoSC_merged.sorted.signal.bam
+  samtools mpileup -BQ0 -d 10000000 -l ${outdir}/${prx}_raw_sites.bed -o ${outdir}/${prx}_raw_sites.pileup -f ${genome} ${dir_nosc}/${prx}_NoSC_merged.sorted.signal.bam
   rm -rf ${outdir}/${prx}_raw_sites.bed
 fi

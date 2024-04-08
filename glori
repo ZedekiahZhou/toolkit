@@ -3,7 +3,7 @@
 #   v1: 2023/11, an integrated pipeline for data cleanning and glori
 #   v2: 2023/12/16, supporting Target-seq (--tools, --species, --combine); supportting duplicates not removing (--no_rmdup); 
 
-ARGS=$(getopt -o 'hi:d:g:p:t:m:' -l 'help,inputfile:,downsample:,species:,thread:,tools:,umi5_len:,umi3_len:,min_len:,fastqc,prx:,untreat,combine,clean_dir:,glori_dir:,only_clean,no_rmdup,gzip,only_glori,m6Am,test' -- "$@")
+ARGS=$(getopt -o 'hi:d:g:p:t:m:' -l 'help,inputfile:,downsample:,species:,thread:,tools:,umi5_len:,umi3_len:,min_len:,fastqc,prx:,untreat,combine,clean_dir:,glori_dir:,only_clean,no_rmdup,gzip,only_glori,m6Am,pipeline:,test' -- "$@")
 if [ $? != 0 ] ; then echo "Parse error! Terminating..." >&2 ; exit 1 ; fi
 eval set -- "$ARGS"
 
@@ -30,6 +30,7 @@ usage: glori [options]
 --gzip			compress the output      
 --only_glori		only run GLORI (${clean_dir}/${prx}_clean.fq must exits!!)
 --m6Am			run GLORI with no filtering in Ratio and P, "-r 0 -p 1.1 -adp 1.1"
+--pipeline		run part of GLORI 
 --test			only output command to be run without actually running it
 '
 
@@ -57,6 +58,7 @@ while true; do
     --gzip) gzip=true; shift;;
     --only_glori) no_clean=true; shift;;
     --m6Am) m6Am=true; shift;;
+    --pipeline) pipeline=$2; shift 2;;
     --test) test=true; shift;;
     --) shift; break ;;
     *) echo "Unrecognized options $1!"; exit 1;;
@@ -72,6 +74,7 @@ if [ ! ${glori_dir} ]; then glori_dir=../03_Sites/; fi
 if [[ ! -d ${glori_dir} ]] && [[ ! ${test} ]]; then mkdir ${glori_dir}; fi
 
 if [ ! ${tools} ]; then tools="STAR"; fi
+if [ ! ${pipeline} ]; then pipeline="whole"; fi
 
 if [ ! $thread ]; then thread=20; fi
 
@@ -151,11 +154,12 @@ if [ ! $no_glori ]; then
     clean_file=${inputfile}
   fi
 
+  cmd_prx="python ${tooldir}/run_GLORI.py -i $tooldir -q ${clean_file} -T $thread -f ${genome} -t ${tools} --pipeline ${pipeline} -pre ${prx} -o ${glori_dir}"
   if [ ${untreat} ]; then
     if [ ${combine} ]; then
-      cmd="python ${tooldir}/run_GLORI_mod_v1.1.py -i $tooldir -q ${clean_file} -T $thread -f ${genome} -Tf ${TfGenome} -a $anno -pre ${prx} -o ${glori_dir} -t ${tools} --combine --untreated"
+      cmd="${cmd_prx} -Tf ${TfGenome} -a $anno --combine --untreated"
     else
-      cmd="python ${tooldir}/run_GLORI_mod_v1.1.py -i $tooldir -q ${clean_file} -T $thread -f ${genome} -pre ${prx} -o ${glori_dir} -t ${tools} --untreated"
+      cmd="${cmd_prx} --untreated"
     fi
   else
     if [ ${m6Am} ]; then 
@@ -165,9 +169,9 @@ if [ ! $no_glori ]; then
     fi
 
     if [ ${combine} ]; then
-      cmd="python ${tooldir}/run_GLORI_mod_v1.1.py -i $tooldir -q ${clean_file} -T $thread -f ${genome} -f2 ${genome2} -rvs ${rvsgenome} -Tf ${TfGenome} -a $anno -b $baseanno -pre ${prx} -o ${glori_dir} -t ${tools} --combine --rvs_fac ${add_pra}"
+      cmd="${cmd_prx} -f2 ${genome2} -rvs ${rvsgenome} -Tf ${TfGenome} -a $anno -b $baseanno --combine --rvs_fac ${add_pra}"
     else
-      cmd="python ${tooldir}/run_GLORI_mod_v1.1.py -i $tooldir -q ${clean_file} -T $thread -f ${genome} -f2 ${genome2} -pre ${prx} -o ${glori_dir} -t ${tools} ${add_pra}"
+      cmd="${cmd_prx} -f2 ${genome2} ${add_pra}"
     fi
   fi
   echo $cmd
