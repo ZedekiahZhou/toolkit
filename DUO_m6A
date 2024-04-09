@@ -19,7 +19,7 @@ usage: DUO_m6Am [options]
 -p --thread		threads used, default 20
 --prx			prefix of output file name, default is the prefix of input file name
 --ds_rate		proportion of reads to subsample, default 0.05
---untreat		run glori in untreat mode (Not used, now detecting "\-UN" in file name)
+--untreat		run glori in untreat mode
 --test			only output command to be run without actually running it
 '
 
@@ -50,7 +50,7 @@ if [ ! $subsample_rate ]; then subsample_rate=0.05; fi
 case $species in
   hg38) 
     source "/lustre2/chengqiyi_pkuhpc/zhouzhe/bin/config/${species}.conf"
-    if [ `echo $prx | grep "\-UN"` ]; then
+    if [ ${untreat} ]; then
       gtf=/lustre2/chengqiyi_pkuhpc/zhouzhe/genome/GLORI/hg38/anno/GCF_000001405.39_GRCh38.p13_genomic.gtf_change2Ens
     else
       gtf=/lustre2/chengqiyi_pkuhpc/zhouzhe/genome/GLORI/hg38/anno/GCF_000001405.39_GRCh38.p13_genomic.AG_converted.gtf
@@ -58,7 +58,7 @@ case $species in
     ;;
   mm10)
     source "/lustre2/chengqiyi_pkuhpc/zhouzhe/bin/config/${species}.conf"
-    if [ `echo $prx | grep "\-UN"` ]; then
+    if [ ${untreat} ]; then
       gtf=/lustre2/chengqiyi_pkuhpc/zhouzhe/genome/GLORI/mm10/anno/GCF_000001635.26_GRCm38.p6_genomic.gtf_change2Ens
     else
       gtf=/lustre2/chengqiyi_pkuhpc/zhouzhe/genome/GLORI/mm10/anno/GCF_000001635.26_GRCm38.p6_genomic.AG_converted.gtf
@@ -75,9 +75,12 @@ esac
 
 # for file in ../01_RawData/*_2.fq.gz
 echo $prx
-if [[ ! -d "../02_Clean" ]]; then mkdir ../02_Clean; fi
-if [[ ! -d "../03_Sites" ]]; then mkdir ../03_Sites; fi
-if [[ ! -d "../04_NoSC" ]]; then mkdir ../04_NoSC; fi
+dir_clean="../02_Clean/"
+dir_sites="../03_Sites/"
+dir_nosc="../04_NoSC/"
+if [[ ! -d ${dir_clean} ]]; then mkdir ${dir_clean}; fi
+if [[ ! -d ${dir_sites} ]]; then mkdir ${dir_sites}; fi
+if [[ ! -d ${dir_nosc} ]]; then mkdir ${dir_nosc}; fi
 
 # I. run GLORI --------
 ## 01. glori preprocessing
@@ -86,69 +89,58 @@ glori -i ${inputfile} -g ${species} -m 3 --umi5_len 3 --fastqc --only_clean --gz
 
 ## 02. remove tag
 echo -e "\n[ `date` ]: Remove Tag --------"
-cutadapt -j 0 -g "TGACGCTGCCGACGATC;rightmost" -m 25 -O 17 -e 0.2 -o ../02_Clean/${prx}_rmtag.fq --info-file ../02_Clean/${prx}_rmtag.info ../02_Clean/${prx}_clean.fq.gz
+cutadapt -j 0 -g "TGACGCTGCCGACGATC;rightmost" -m 25 -O 17 -e 0.2 -o ${dir_clean}/${prx}_rmtag.fq --info-file ${dir_clean}/${prx}_rmtag.info ${dir_clean}/${prx}_clean.fq.gz
 if [[ ! -d "../fastqc/rmtag" ]]; then mkdir ../fastqc/rmtag; fi
-fastqc ../02_Clean/${prx}_rmtag.fq --thread 20 -q -o ../fastqc/rmtag/
+fastqc ${dir_clean}/${prx}_rmtag.fq --thread 20 -q -o ../fastqc/rmtag/
+
+if [[ "" ]]; then
+  ## downsample
+  target_reads=41000000
+  n_reads=`samtools view -c ${dir_sites}/${prx}_merged.sorted.bam`
+  dsr=`echo "scale=4;${target_reads}/${n_reads}" | bc`
+  if (( `echo ${dsr} '> 1' | bc` )); then dsr=.9999; fi
+  samtools view -@ 4 -s 0${dsr} -b ${dir_sites}/${prx}_merged.sorted.bam > ${dir_sites}/${prx}_ds_merged.sorted.bam
+  samtools index ${dir_sites}/${prx}_ds_merged.sorted.bam
+  prx=${prx}_ds
+fi
 
 ## 03. run glori, call all A sites (almostly)
 echo -e "\n[ `date` ]: Run GLORI --------"
-if [ `echo ${prx} | grep "\-UN"` ]; then
-  glori -i ../02_Clean/${prx}_rmtag.fq -g ${species} --prx ${prx} --combine --only_glori --untreat
+if [ ${untreat} ]; then
+  glori -i ${dir_clean}/${prx}_rmtag.fq -g ${species} --prx ${prx} --combine --only_glori --untreat
 else
-  glori -i ../02_Clean/${prx}_rmtag.fq -g ${species} --prx ${prx} --combine --only_glori
+  glori -i ${dir_clean}/${prx}_rmtag.fq -g ${species} --prx ${prx} --combine --only_glori
 fi
 
-## 04. remove soft clipped reads
-echo -e "\n[ `date` ]: Get Non-soft-clipped reads --------"
-ln -s ../03_Sites/${prx}_merged.sorted.bam ../04_NoSC/${prx}_NoSC_merged.sorted.bam
-ln -s ../03_Sites/${prx}_merged.sorted.bam.bai ../04_NoSC/${prx}_NoSC_merged.sorted.bam.bai
-
 # II. QC --------
-outdir=../04_NoSC/QC/
+outdir=${dir_sites}/QC/
 if [[ ! -d $outdir ]]; then mkdir $outdir; fi
 
-# 01. get QC report
-echo -e "\n[ `date` ]: Get QC reports --------"
-# report_stats $prx > ${outdir}/${prx}_QC_stats.txt
-
-# 02. get alignments length
+# 01. get alignments length
 echo -e "\n[ `date` ]: Get alignments length --------"
-samtools view -s ${subsample_rate} ../04_NoSC/${prx}_NoSC_merged.sorted.bam -b > ${outdir}/${prx}_subsample_${subsample_rate}.bam
+samtools view -s ${subsample_rate} ${dir_sites}/${prx}_merged.sorted.bam -b > ${outdir}/${prx}_subsample_${subsample_rate}.bam
 samtools index ${outdir}/${prx}_subsample_${subsample_rate}.bam
 python /lustre2/chengqiyi_pkuhpc/zhouzhe/bin/get_align_length.py ${outdir}/${prx}_subsample_${subsample_rate}.bam ${outdir}/${prx}_align_len.csv
 
-# 03. get read distribution (qualimap)
-echo -e "\n[ `date` ]: Qualimap --------"
-mkdir -p ${outdir}/qualimap_${prx}
-qualimap rnaseq -outdir ${outdir}/qualimap_${prx} -bam ../04_NoSC/${prx}_NoSC_merged.sorted.bam -gtf $gtf --java-mem-size=32G
 
-# 04. get distribution of 5p sites (metaPlotR)
-echo -e "\n[ `date` ]: MetaPlotR --------"
-source activate metaPlotR
-metaPlotR_dir=/lustre2/chengqiyi_pkuhpc/zhouzhe/software/metaPlotR/
-annot_prx=/lustre2/chengqiyi_pkuhpc/zhouzhe/genome/anno_metaPlotR/${species}/${species}
+if [ ${untreat} ]; then
+  echo ""
+else
+  # 02. get distribution of m6A sites (metaPlotR)
+  echo -e "\n[ `date` ]: MetaPlotR --------"
+  source activate metaPlotR
+  metaPlotR_dir=/lustre2/chengqiyi_pkuhpc/zhouzhe/software/metaPlotR/
+  annot_prx=/lustre2/chengqiyi_pkuhpc/zhouzhe/genome/anno_metaPlotR/${species}/${species}
 
-bamToBed -i ${outdir}/${prx}_subsample_${subsample_rate}.bam > ${outdir}/${prx}_merged.sorted.bed
-awk -v OFS='\t' '$6=="-" {sub("_AG_converted", "", $1); $2=$3-1; print $0} $6=="+" {sub("_AG_converted", "", $1); $3=$2+1; print $0}' ${outdir}/${prx}_merged.sorted.bed > ${outdir}/${prx}_merged.sorted_5prime_sites.bed
-perl ${metaPlotR_dir}/annotate_bed_file.pl --bed ${outdir}/${prx}_merged.sorted_5prime_sites.bed --bed2 ${annot_prx}_annot.sorted.bed > ${outdir}/${prx}_merged.sorted_5prime_sites_annot.bed
-perl ${metaPlotR_dir}/rel_and_abs_dist_calc.pl --bed ${outdir}/${prx}_merged.sorted_5prime_sites_annot.bed --regions ${annot_prx}_region_sizes.txt > ${outdir}/${prx}.dist.measures.txt
-rm -rf ${outdir}/${prx}_merged.sorted.bed ${outdir}/${prx}_merged.sorted_5prime_sites.bed ${outdir}/${prx}_merged.sorted_5prime_sites_annot.bed ${outdir}/${prx}_subsample_${subsample_rate}.bam ${outdir}/${prx}_subsample_${subsample_rate}.bam.bai
-source activate zzhou_bio
+  cat ${dir_sites}/${prx}.totalm6A.FDR.csv | awk -v OFS='\t' 'NR!=1 {print $1, $2-1, $2, $4, 0, $3}'  > ${outdir}/${prx}_m6A_sites.bed
+  perl ${metaPlotR_dir}/annotate_bed_file.pl --bed ${outdir}/${prx}_m6A_sites.bed --bed2 ${annot_prx}_annot.sorted.bed > ${outdir}/${prx}_m6A_sites_annot.bed
+  perl ${metaPlotR_dir}/rel_and_abs_dist_calc.pl --bed ${outdir}/${prx}_m6A_sites_annot.bed --regions ${annot_prx}_region_sizes.txt > ${outdir}/${prx}_m6A_sites.dist.measures.txt
+  rm -rf ${outdir}/${prx}_m6A_sites.bed ${outdir}/${prx}_m6A_sites_annot.bed 
+  source activate zzhou_bio
 
-
-# III. TSS and m6Am
-outdir="../04_NoSC/m6Am/"
-if [[ ! -d $outdir ]]; then mkdir $outdir; fi
-
-# 01. get TSS
-echo -e "\n[ `date` ]: Get TSS --------"
-get_TSS ../04_NoSC/${prx}_NoSC_merged.sorted.bam
-
-if [ `echo ${prx} | grep -v "\-UN"` ]; then
-  # 02. get 5 bases around m6A sites
+  # 03. get 5 bases around m6A sites
   echo -e "\n[ `date` ]: Get 5 bases around sites --------"
-  cat ../03_Sites/${prx}.totalm6A.FDR.csv | awk '$6>=15 && $7>0' > ${outdir}/${prx}_raw_sites.csv
-  cat ${outdir}/${prx}_raw_sites.csv | awk -v OFS='\t' 'NR!=1 {print $1, $2-3, $2+2, $4, 0, $3}'  > ${outdir}/${prx}_raw_sites_len5.bed
-  bedtools getfasta -s -fi ${genome2} -bed ${outdir}/${prx}_raw_sites_len5.bed -bedOut > ${outdir}/${prx}_raw_sites_len5_motif.bed
-  rm -rf ${outdir}/${prx}_raw_sites_len5.bed
+  cat ${dir_sites}/${prx}.totalm6A.FDR.csv | awk -v OFS='\t' 'NR!=1 {print $1, $2-3, $2+2, $4, 0, $3}'  > ${outdir}/${prx}_m6A_sites_len5.bed
+  bedtools getfasta -s -fi ${genome2} -bed ${outdir}/${prx}_m6A_sites_len5.bed -bedOut > ${outdir}/${prx}_m6A_sites_len5_motif.bed
+  rm -rf ${outdir}/${prx}_m6A_sites_len5.bed
 fi

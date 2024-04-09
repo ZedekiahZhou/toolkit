@@ -1,0 +1,4 @@
+#a=`ls *.out | sed 's/.out//g' | sed -E 's/.*_//g' | tr "\n" "|" | sed 's/|$/\n/'`
+#a=`ls job* | sed 's/job.srp//g' | tr "\n" "|" | sed 's/|$/\n/'`
+a=`grep "\-J" job* | sed -E 's/.+\-J\ //g' | tr "\n" "|" | sed 's/|$/\n/'`
+sq | grep -wE "($a)"

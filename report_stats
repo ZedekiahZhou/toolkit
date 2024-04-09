@@ -36,7 +36,8 @@ m3=`cat ${dir_mapping_log}/${sam}*.sam.output | grep "Reported" | sed 's/Reporte
 echo -e "Uniquely mapped reads number to genome:\t${m1}"
 echo -e "Uniquely mapped reads number to rvs:\t${m2}"
 echo -e "Uniquely mapped reads number to tf:\t${m3}"
-echo -e "Uniquely mapped reads number (Total):\t$[${m1}+${m2}+${m3}]"
+mtotal=$[m1+m2+m3]
+echo -e "Uniquely mapped reads number (Total):\t${mtotal}"
 
 # m6A stats
 cat ${dir_sites}/${sam}.totalCR.txt | grep Median | sort -k2,2n | \

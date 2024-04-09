@@ -18,7 +18,7 @@ usage: DUO_m6Am [options]
 -p --thread		threads used, default 20
 --prx			prefix of output file name, default is the prefix of input file name
 --ds_rate		proportion of reads to subsample, default 0.05
---untreat		run glori in untreat mode (Not used, now detecting "\-UN" in file name)
+--untreat		run glori in untreat mode
 --test			only output command to be run without actually running it
 '
 
@@ -49,7 +49,7 @@ if [ ! $subsample_rate ]; then subsample_rate=0.05; fi
 case $species in
   hg38) 
     source "/lustre2/chengqiyi_pkuhpc/zhouzhe/bin/config/${species}.conf"
-    if [ `echo $prx | grep "\-UN"` ]; then
+    if [ ${untreat} ]; then
       gtf=/lustre2/chengqiyi_pkuhpc/zhouzhe/genome/GLORI/hg38/anno/GCF_000001405.39_GRCh38.p13_genomic.gtf_change2Ens
     else
       gtf=/lustre2/chengqiyi_pkuhpc/zhouzhe/genome/GLORI/hg38/anno/GCF_000001405.39_GRCh38.p13_genomic.AG_converted.gtf
@@ -57,7 +57,7 @@ case $species in
     ;;
   mm10)
     source "/lustre2/chengqiyi_pkuhpc/zhouzhe/bin/config/${species}.conf"
-    if [ `echo $prx | grep "\-UN"` ]; then
+    if [ ${untreat} ]; then
       gtf=/lustre2/chengqiyi_pkuhpc/zhouzhe/genome/GLORI/mm10/anno/GCF_000001635.26_GRCm38.p6_genomic.gtf_change2Ens
     else
       gtf=/lustre2/chengqiyi_pkuhpc/zhouzhe/genome/GLORI/mm10/anno/GCF_000001635.26_GRCm38.p6_genomic.AG_converted.gtf
@@ -94,7 +94,7 @@ fastqc ${dir_clean}${prx}_rmtag.fq --thread 20 -q -o ../fastqc/rmtag/
 
 ## 03. run glori, call all A sites (almostly)
 echo -e "\n[ `date` ]: Run GLORI --------"
-if [ `echo ${prx} | grep "\-UN"` ]; then
+if [ ${untreat} ]; then
   glori -i ${dir_clean}${prx}_rmtag.fq -g ${species} --prx ${prx} --combine --only_glori --untreat
 else
   glori -i ${dir_clean}${prx}_rmtag.fq -g ${species} --prx ${prx} --combine --only_glori --m6Am
@@ -151,7 +151,9 @@ get_TSS ${dir_nosc}/${prx}_NoSC_merged.sorted.bam
 bedtools getfasta -s -fi ${genome2} -bed ${dir_nosc}/${prx}_NoSC_merged.sorted.bam.ctss.sorted.bed -bedOut > ${outdir}/${prx}_TSS.bed
 rm -rf ${dir_nosc}/${prx}_NoSC_merged.sorted.bam.ctss.sorted.bed
 
-if [ `echo ${prx} | grep -v "\-UN"` ]; then
+if [ ${untreat} ]; then
+  echo ""
+else
   # 02. get 5 bases around m6A sites
   echo -e "\n[ `date` ]: Get 5 bases around sites --------"
   cat ${dir_sites}/${prx}.totalm6A.FDR.csv | awk '$6>=15 && $7>0' > ${outdir}/${prx}_raw_sites.csv
