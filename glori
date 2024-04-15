@@ -3,7 +3,9 @@
 #   v1: 2023/11, an integrated pipeline for data cleanning and glori
 #   v2: 2023/12/16, supporting Target-seq (--tools, --species, --combine); supportting duplicates not removing (--no_rmdup); 
 
-ARGS=$(getopt -o 'hi:d:g:p:t:m:' -l 'help,inputfile:,downsample:,species:,thread:,tools:,umi5_len:,umi3_len:,min_len:,fastqc,prx:,untreat,combine,clean_dir:,glori_dir:,only_clean,no_rmdup,gzip,only_glori,m6Am,pipeline:,test' -- "$@")
+ARGS=$(getopt -o 'hi:d:g:p:t:m:' \
+  -l 'help,inputfile:,downsample:,species:,thread:,tools:,umi5_len:,umi3_len:,min_len:,fastqc,prx:,untreat,combine,clean_dir:,glori_dir:,only_clean,no_rmdup,gzip,only_glori,m6Am,pipeline:,test' \
+  -- "$@")
 if [ $? != 0 ] ; then echo "Parse error! Terminating..." >&2 ; exit 1 ; fi
 eval set -- "$ARGS"
 
@@ -42,7 +44,7 @@ while true; do
     -i|--inputfile) inputfile=$2; shift 2;;
     -d|--downsample) ds=$2; shift 2;;
     -g|--species) species=$2; shift 2;;
-		-m|--min_len) min_len=$2; shift 2;;
+    -m|--min_len) min_len=$2; shift 2;;
     -p|--thread) thread=$2; shift 2;;
     -t|--tools) tools=$2; shift 2;;
     --umi5_len) umi5=$2; shift 2;;
@@ -65,20 +67,17 @@ while true; do
   esac
 done
 
-if [ ! ${clean_dir} ]; then clean_dir=../02_Clean/; fi
+# set default value for variables
+clean_dir=${clean_dir:-'../02_Clean'}
 if [[ ! -d ${clean_dir} ]] && [[ ! ${test} ]]; then mkdir ${clean_dir}; fi
 
-if [ ! ${clean_tag} ]; then clean_tag=clean; fi
-
-if [ ! ${glori_dir} ]; then glori_dir=../03_Sites/; fi
+glori_dir=${glori_dir:-'../03_Sites/'}
 if [[ ! -d ${glori_dir} ]] && [[ ! ${test} ]]; then mkdir ${glori_dir}; fi
 
-if [ ! ${tools} ]; then tools="STAR"; fi
-if [ ! ${pipeline} ]; then pipeline="All"; fi
-
-if [ ! $thread ]; then thread=20; fi
-
-if [ ! $min_len ]; then min_len=25; fi
+tools=${tools:-'STAR'}
+pipeline=${pipeline:-'All'}
+thread=${thread:-'20'}
+min_len=${min_len:-'25'}
 
 if [ ! $prx ]; then
   prx=`basename ${inputfile} | sed -E 's/(_L[1-9]_[12])?.f(ast)?q(.gz)?//'`

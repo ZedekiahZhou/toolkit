@@ -135,7 +135,7 @@ else
   cat ${dir_sites}/${prx}.totalm6A.FDR.csv | awk -v OFS='\t' 'NR!=1 {print $1, $2-1, $2, $4, 0, $3}'  > ${outdir}/${prx}_m6A_sites.bed
   perl ${metaPlotR_dir}/annotate_bed_file.pl --bed ${outdir}/${prx}_m6A_sites.bed --bed2 ${annot_prx}_annot.sorted.bed > ${outdir}/${prx}_m6A_sites_annot.bed
   perl ${metaPlotR_dir}/rel_and_abs_dist_calc.pl --bed ${outdir}/${prx}_m6A_sites_annot.bed --regions ${annot_prx}_region_sizes.txt > ${outdir}/${prx}_m6A_sites.dist.measures.txt
-  rm -rf ${outdir}/${prx}_m6A_sites.bed ${outdir}/${prx}_m6A_sites_annot.bed 
+  rm -rf ${outdir}/${prx}_m6A_sites.bed ${outdir}/${prx}_m6A_sites_annot.bed ${outdir}/${prx}_subsample_${subsample_rate}.bam
   source activate zzhou_bio
 
   # 03. get 5 bases around m6A sites

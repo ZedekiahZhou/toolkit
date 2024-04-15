@@ -1,11 +1,40 @@
 #!/bin/bash
-dir_mapping_log=../03_Sites/mapping-info/
-dir_sites=../03_Sites/
-dir_fq=../02_Clean/
-sam=$1
+
+ARGS=$(getopt -o 'hn:' -l 'help,log_prefix:,dir_mapping_log:,dir_sites:,dir_nosc:' -n "$0" -- "$@")
+if [ $? != 0 ] ; then echo "Parse error! Terminating..." >&2 ; exit 1 ; fi
+eval set -- "$ARGS"
+
+USAGE='
+usage: report_stats [options]
+
+-h --help		print this help text and exit
+-n --log_prefix		prefix of log file to search stats, default is "glo"
+--dir_mapping_log	directory to find mapping log, default is "../03_Sites/mapping-info/"
+--dir_sites		directory to find glori outputs, default is "../03_Sites/"
+--dir_nosc		directory to find non-softclipped bam file, default is "../04_NoSC/"
+'
+
+# parameters -----
+while true; do
+  case $1 in
+    -h|--help) printf "%s\\n" "$USAGE"; exit 2;;
+    -n|--log_prefix) log_prefix=$2; shift 2;;
+    --dir_mapping_log) dir_mapping_log=$2; shift 2;;
+    --dir_sites) dir_sites=$2; shift 2;;
+    --dir_nosc) dir_nosc=$2; shift 2;;
+    --) shift; break ;;
+    *) echo "Unrecognized options $1!"; exit 1;;
+  esac
+done
+
+# set defaults
+dir_mapping_log=${dir_mapping_log:-'../03_Sites/mapping-info/'}
+dir_sites=${dir_sites:-'../03_Sites/'}
+dir_nosc=${dir_nosc:-'../04_NoSC/'}
+
+sam=$1 # the first remaining non-option parameter is the prefix of samples
 
 # preprocessing stats
-# echo $sam
 echo -e "Samples:\t${sam}"
 
 raw=`cat log/glo_${sam}.err | grep "Total reads processed" | awk '{print $4}'`
@@ -48,8 +77,5 @@ s1=`cat ${dir_sites}/${sam}.totalm6A.FDR.csv | wc -l`
 echo -e "Number of m6A sites:\t$[${s1}-1]"
 
 # Soft clipped stats
-echo -e "Mapped reads:\t`samtools view -@ 4 -c ../03_Sites/${sam}_merged.sorted.bam`"
-echo -e "Non-softclipped reads:\t`samtools view -@ 4 -c ../04_NoSC/${sam}_NoSC_merged.sorted.bam`"
-
-echo ""
-echo ""
+echo -e "Mapped reads:\t`samtools view -@ 4 -c ${dir_sites}/${sam}_merged.sorted.bam`"
+echo -e "Non-softclipped reads:\t`samtools view -@ 4 -c ${dir_nosc}/${sam}_NoSC_merged.sorted.bam`"
