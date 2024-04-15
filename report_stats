@@ -37,22 +37,21 @@ sam=$1 # the first remaining non-option parameter is the prefix of samples
 # preprocessing stats
 echo -e "Samples:\t${sam}"
 
-raw=`cat log/glo_${sam}.err | grep "Total reads processed" | awk '{print $4}'`
+raw=`cat log/${log_prefix}_${sam}.err | grep "Total reads processed" | awk '{print $4}'`
 echo -e "Raw reads:\t${raw}"
-dup=`cat log/glo_${sam}.err | grep "duplicated records removed" | awk '{print $2}'`
+dup=`cat log/${log_prefix}_${sam}.err | grep "duplicated records removed" | awk '{print $2}'`
 echo -e "Duplicated reads:\t${dup}"
-short1=`cat log/glo_${sam}.err | grep "shorter than" | sed -E 's/.+:\t//g' | sed -E 's/\(.+\)//g' | sed -E 's/,//g'`
+short1=`cat log/${log_prefix}_${sam}.err | grep "shorter than" | sed -E 's/.+:\t//g' | sed -E 's/\(.+\)//g' | sed -E 's/,//g'`
 
 # echo "\nTagged reads:"
-tag=`cat log/glo_${sam}.out | grep "Reads with adapters" | awk '{print $4}'`
+tag=`cat log/${log_prefix}_${sam}.out | grep "Reads with adapters" | awk '{print $4}'`
 echo -e "Reads with tag:\t${tag}"
-short2=`cat log/glo_${sam}.out | grep "Reads that were too short" | awk '{print $6}' | sed -E 's/,//g'`
+short2=`cat log/${log_prefix}_${sam}.out | grep "Reads that were too short" | awk '{print $6}' | sed -E 's/,//g'`
 echo -e "Reads shorter than 25 bp:\t$((short1+short2))"
-untag=`cat log/glo_${sam}.out | grep "Reads discarded as untrimmed" | awk '{print $5}'`
+untag=`cat log/${log_prefix}_${sam}.out | grep "Reads discarded as untrimmed" | awk '{print $5}'`
 echo -e "Reads without tag:\t${untag}"
-clean=`cat log/glo_${sam}.out | grep "Reads written" | awk '{print $5}'`
+clean=`cat log/${log_prefix}_${sam}.out | grep "Reads written" | awk '{print $5}'`
 echo -e "Clean reads:\t${clean}"
-# cat log/glo_${sam}.out | grep "eads" | awk 'NR!=1 && NR!=2' | sed -E 's/ {2,}/\t/' | grep ":"
 echo ""
 
 # Mapping stats
