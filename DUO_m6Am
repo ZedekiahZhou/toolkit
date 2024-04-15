@@ -48,7 +48,7 @@ if [ ! $subsample_rate ]; then subsample_rate=0.05; fi
 
 case $species in
   hg38) 
-    source "/lustre2/chengqiyi_pkuhpc/zhouzhe/bin/config/${species}.conf"
+    source "/lustre2/chengqiyi_pkuhpc/zhouzhe/toolkit/config/${species}.conf"
     if [ ${untreat} ]; then
       gtf=/lustre2/chengqiyi_pkuhpc/zhouzhe/genome/GLORI/hg38/anno/GCF_000001405.39_GRCh38.p13_genomic.gtf_change2Ens
     else
@@ -56,7 +56,7 @@ case $species in
     fi
     ;;
   mm10)
-    source "/lustre2/chengqiyi_pkuhpc/zhouzhe/bin/config/${species}.conf"
+    source "/lustre2/chengqiyi_pkuhpc/zhouzhe/toolkit/config/${species}.conf"
     if [ ${untreat} ]; then
       gtf=/lustre2/chengqiyi_pkuhpc/zhouzhe/genome/GLORI/mm10/anno/GCF_000001635.26_GRCm38.p6_genomic.gtf_change2Ens
     else

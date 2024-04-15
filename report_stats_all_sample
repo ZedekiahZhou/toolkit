@@ -1,7 +1,20 @@
+#!/bin/bash
+
+while getopts 'n:' opt
+do
+  case $opt in
+    n) log_prefix=$OPTARG;;
+    ?) echo "Unrecognized options $1!"; exit 1;;
+  esac
+done
+
+shift $(($OPTIND - 1))
+log_prefix=${log_prefix:-'glo'}
+
 for file in $@
 do
   prx=`basename ${file} | sed -E 's/(_L[0-9]_[12])?.f(ast)?q(.gz)?//'`
-  ~/bin/report_stats $prx > ../04_NoSC/QC/${prx}_QC_stats.txt
+  ~/toolkit/report_stats -n ${log_prefix} $prx > ../04_NoSC/QC/${prx}_QC_stats.txt
 done
 
 prx=`basename $1 | sed -E 's/(_L[0-9]_[12])?.f(ast)?q(.gz)?//'`

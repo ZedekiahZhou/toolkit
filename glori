@@ -84,7 +84,7 @@ if [ ! $prx ]; then
 fi
 
 case $species in
-  hg38|mm10) source "/lustre2/chengqiyi_pkuhpc/zhouzhe/bin/config/${species}.conf";;
+  hg38|mm10) source "/lustre2/chengqiyi_pkuhpc/zhouzhe/toolkit/config/${species}.conf";;
   "") echo "Please specifiy genome used (hg38 or mm10)!";;
   *) source $species;;
 esac

@@ -28,6 +28,7 @@ while true; do
 done
 
 # set defaults
+log_prefix=${log_prefix:-'glo'}
 dir_mapping_log=${dir_mapping_log:-'../03_Sites/mapping-info/'}
 dir_sites=${dir_sites:-'../03_Sites/'}
 dir_nosc=${dir_nosc:-'../04_NoSC/'}
@@ -60,7 +61,7 @@ echo -e "Number of input reads for mapping:\t${input}"
 
 m1=`cat ${dir_mapping_log}/${sam}.Log.final.out | grep "Uniquely mapped reads number" | sed 's/^.*\t//g'`
 m2=`cat ${dir_mapping_log}/${sam}_rvs.Log.final.out | grep "Uniquely mapped reads number" | sed 's/^.*\t//g'`
-m3=`cat ${dir_mapping_log}/${sam}*.sam.output | grep "Reported" | sed 's/Reported //g' | sed 's/ alignments//g'`
+m3=`cat ${dir_mapping_log}/${sam}_[tu][nf].sam.output | grep "Reported" | sed 's/Reported //g' | sed 's/ alignments//g'`
 echo -e "Uniquely mapped reads number to genome:\t${m1}"
 echo -e "Uniquely mapped reads number to rvs:\t${m2}"
 echo -e "Uniquely mapped reads number to tf:\t${m3}"
