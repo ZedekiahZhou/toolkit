@@ -2,6 +2,8 @@
 # change log:
 #   v1: 2023/11, an integrated pipeline for data cleanning and glori
 #   v2: 2023/12/16, supporting Target-seq (--tools, --species, --combine); supportting duplicates not removing (--no_rmdup); 
+# shellcheck disable=SC2016
+# shellcheck disable=SC2086
 
 ARGS=$(getopt -o 'hi:d:g:p:t:m:' \
   -l 'help,inputfile:,downsample:,species:,thread:,tools:,umi5_len:,umi3_len:,min_len:,fastqc,prx:,untreat,combine,clean_dir:,glori_dir:,only_clean,no_rmdup,gzip,only_glori,m6Am,pipeline:,test' \
@@ -80,7 +82,7 @@ thread=${thread:-'20'}
 min_len=${min_len:-'25'}
 
 if [ ! $prx ]; then
-  prx=`basename ${inputfile} | sed -E 's/(_L[1-9]_[12])?.f(ast)?q(.gz)?//'`
+  prx=$(basename ${inputfile} | sed -E 's/(_L[1-9]_[12])?.f(ast)?q(.gz)?//')
 fi
 
 case $species in
@@ -104,11 +106,11 @@ if [ ! $no_clean ]; then
   ## downsample & trim adapter
   if [ $ds ]; then
     cmd="zcat ${inputfile} | seqkit head -n $ds -o ${clean_dir}/${prx}_ds.fq.gz;
-    trim_galore --nextseq 20 -j 7 --stringency 1 -e 0.3 --length $[umi5+umi3+min_len] -o ${clean_dir} ${clean_dir}/${prx}_ds.fq.gz;
+    trim_galore --nextseq 20 -j 7 --stringency 1 -e 0.3 --length $((umi5+umi3+min_len)) -o ${clean_dir} ${clean_dir}/${prx}_ds.fq.gz;
     mv ${clean_dir}/${prx}_ds_trimmed.fq.gz ${clean_dir}/${prx}_trimmed.fq.gz"
   else
-    tmpfile=`basename ${inputfile} | sed -E 's/.f(ast)?q(.gz)?/_trimmed.fq.gz/'`
-    cmd="trim_galore --nextseq 20 -j 7 --stringency 1 -e 0.3 --length $[umi5+umi3+min_len] -o ${clean_dir} ${inputfile};
+    tmpfile=$(basename ${inputfile} | sed -E 's/.f(ast)?q(.gz)?/_trimmed.fq.gz/')
+    cmd="trim_galore --nextseq 20 -j 7 --stringency 1 -e 0.3 --length $((umi5+umi3+min_len)) -o ${clean_dir} ${inputfile};
     mv ${clean_dir}/${tmpfile} ${clean_dir}/${prx}_trimmed.fq.gz"
   fi
   echo $cmd | tr ';' '\n' | sed 's/^ //'
@@ -124,15 +126,15 @@ if [ ! $no_clean ]; then
   ## remove duplicates
   if [ ! ${no_rmdup} ]; then
     if [ ${gzip} ]; then
-      cmd="seqkit rmdup -j 10 -s ${clean_dir}/${prx}_trimmed.fq.gz | fastx_trimmer -Q 33 -f $[umi5+1] -z -o ${clean_dir}/${prx}_clean.fq.gz";
+      cmd="seqkit rmdup -j 10 -s ${clean_dir}/${prx}_trimmed.fq.gz | fastx_trimmer -Q 33 -f $((umi5+1)) -z -o ${clean_dir}/${prx}_clean.fq.gz";
     else
-      cmd="seqkit rmdup -j 10 -s ${clean_dir}/${prx}_trimmed.fq.gz | fastx_trimmer -Q 33 -f $[umi5+1] -o ${clean_dir}/${prx}_clean.fq";
+      cmd="seqkit rmdup -j 10 -s ${clean_dir}/${prx}_trimmed.fq.gz | fastx_trimmer -Q 33 -f $((umi5+1)) -o ${clean_dir}/${prx}_clean.fq";
     fi
   else
     if [ ${gzip} ]; then
-      cmd="zcat ${clean_dir}/${prx}_trimmed.fq.gz | fastx_trimmer -Q 33 -f $[umi5+1] -z -o ${clean_dir}/${prx}_clean.fq.gz";
+      cmd="zcat ${clean_dir}/${prx}_trimmed.fq.gz | fastx_trimmer -Q 33 -f $((umi5+1)) -z -o ${clean_dir}/${prx}_clean.fq.gz";
     else
-      cmd="zcat ${clean_dir}/${prx}_trimmed.fq.gz | fastx_trimmer -Q 33 -f $[umi5+1] -o ${clean_dir}/${prx}_clean.fq";
+      cmd="zcat ${clean_dir}/${prx}_trimmed.fq.gz | fastx_trimmer -Q 33 -f $((umi5+1)) -o ${clean_dir}/${prx}_clean.fq";
     fi
   fi
   echo $cmd

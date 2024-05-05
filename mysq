@@ -1,2 +1,0 @@
-a=`myjob | grep JobId | sed 's/JobId=//g' | sed -E 's/\ .+//g' | tr "\n" "|" | sed 's/|$/\n/'`
-sq | grep -wE "($a)"
