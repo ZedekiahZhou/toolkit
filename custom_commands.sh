@@ -22,3 +22,11 @@ mysq() {
     jname=$(myjob | grep JobId | sed 's/JobId=//g' | sed -E 's/\ .+//g' | tr "\n" "|" | sed 's/|$/\n/')
     if [ ${jname} ]; then sq | grep -wE "($jname)"; fi
 }
+
+cles() {
+    column -s, -t "$@"| les
+}
+
+tles() {
+    column -s$'\t' -t "$@" | les
+}
