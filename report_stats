@@ -38,34 +38,34 @@ sam=$1 # the first remaining non-option parameter is the prefix of samples
 # preprocessing stats
 echo -e "Samples:\t${sam}"
 
-raw=`cat log/${log_prefix}_${sam}.err | grep "Total reads processed" | awk '{print $4}'`
+raw=$(cat log/${log_prefix}_${sam}.err | grep "Total reads processed" | awk '{print $4}')
 echo -e "Raw reads:\t${raw}"
-dup=`cat log/${log_prefix}_${sam}.err | grep "duplicated records removed" | awk '{print $2}'`
+dup=$(cat log/${log_prefix}_${sam}.err | grep "duplicated records removed" | awk '{print $2}')
 echo -e "Duplicated reads:\t${dup}"
-short1=`cat log/${log_prefix}_${sam}.err | grep "shorter than" | sed -E 's/.+:\t//g' | sed -E 's/\(.+\)//g' | sed -E 's/,//g'`
+short1=$(cat log/${log_prefix}_${sam}.err | grep "shorter than" | sed -E 's/.+:\t//g' | sed -E 's/\(.+\)//g' | sed -E 's/,//g')
 
 # echo "\nTagged reads:"
-tag=`cat log/${log_prefix}_${sam}.out | grep "Reads with adapters" | awk '{print $4}'`
+tag=$(cat log/${log_prefix}_${sam}.out | grep "Reads with adapters" | awk '{print $4}')
 echo -e "Reads with tag:\t${tag}"
-short2=`cat log/${log_prefix}_${sam}.out | grep "Reads that were too short" | awk '{print $6}' | sed -E 's/,//g'`
+short2=$(cat log/${log_prefix}_${sam}.out | grep "Reads that were too short" | awk '{print $6}' | sed -E 's/,//g')
 echo -e "Reads shorter than 25 bp:\t$((short1+short2))"
-untag=`cat log/${log_prefix}_${sam}.out | grep "Reads discarded as untrimmed" | awk '{print $5}'`
+untag=$(cat log/${log_prefix}_${sam}.out | grep "Reads discarded as untrimmed" | awk '{print $5}')
 echo -e "Reads without tag:\t${untag}"
-clean=`cat log/${log_prefix}_${sam}.out | grep "Reads written" | awk '{print $5}'`
+clean=$(cat log/${log_prefix}_${sam}.out | grep "Reads written" | awk '{print $5}')
 echo -e "Clean reads:\t${clean}"
 echo ""
 
 # Mapping stats
-input=`cat ${dir_mapping_log}/${sam}.Log.final.out | grep "Number of input reads" | sed 's/^.*\t//g'`
+input=$(cat ${dir_mapping_log}/${sam}.Log.final.out | grep "Number of input reads" | sed 's/^.*\t//g')
 echo -e "Number of input reads for mapping:\t${input}"
 
-m1=`cat ${dir_mapping_log}/${sam}.Log.final.out | grep "Uniquely mapped reads number" | sed 's/^.*\t//g'`
-m2=`cat ${dir_mapping_log}/${sam}_rvs.Log.final.out | grep "Uniquely mapped reads number" | sed 's/^.*\t//g'`
-m3=`cat ${dir_mapping_log}/${sam}_[tu][nf].sam.output | grep "Reported" | sed 's/Reported //g' | sed 's/ alignments//g'`
+m1=$(cat ${dir_mapping_log}/${sam}.Log.final.out | grep "Uniquely mapped reads number" | sed 's/^.*\t//g')
+m2=$(cat ${dir_mapping_log}/${sam}_rvs.Log.final.out | grep "Uniquely mapped reads number" | sed 's/^.*\t//g')
+m3=$(cat ${dir_mapping_log}/${sam}_[tu][nf].sam.output | grep "Reported" | sed 's/Reported //g' | sed 's/ alignments//g')
 echo -e "Uniquely mapped reads number to genome:\t${m1}"
 echo -e "Uniquely mapped reads number to rvs:\t${m2}"
 echo -e "Uniquely mapped reads number to tf:\t${m3}"
-mtotal=$[m1+m2+m3]
+mtotal=$((m1+m2+m3))
 echo -e "Uniquely mapped reads number (Total):\t${mtotal}"
 
 # m6A stats
@@ -73,9 +73,9 @@ cat ${dir_sites}/${sam}.totalCR.txt | grep Median | sort -k2,2n | \
     awk 'BEGIN {min=1;max=0} {a[NR]=$2} 
     END {if (NR%2) {median=a[(NR+1)/2]} else {median=(a[(NR/2)]+a[(NR/2)+1])/2};
          printf "Min CR:\t%s\n",a[1]; printf "Max CR:\t%s\n",a[NR]; printf "Median CR:\t%s\n",median}'
-s1=`cat ${dir_sites}/${sam}.totalm6A.FDR.csv | wc -l`
-echo -e "Number of m6A sites:\t$[${s1}-1]"
+s1=$(cat ${dir_sites}/${sam}.totalm6A.FDR.csv | wc -l)
+echo -e "Number of m6A sites:\t$((s1-1))"
 
-# Soft clipped stats
-echo -e "Mapped reads:\t`samtools view -@ 4 -c ${dir_sites}/${sam}_merged.sorted.bam`"
-echo -e "Non-softclipped reads:\t`samtools view -@ 4 -c ${dir_nosc}/${sam}_NoSC_merged.sorted.bam`"
+# # Soft clipped stats
+# echo -e "Mapped reads:\t$(samtools view -@ 4 -c ${dir_sites}/${sam}_merged.sorted.bam)"
+# echo -e "Non-softclipped reads:\t$(samtools view -@ 4 -c ${dir_nosc}/${sam}_NoSC_merged.sorted.bam)"
