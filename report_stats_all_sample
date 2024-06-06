@@ -1,33 +1,37 @@
 #!/bin/bash
 
-while getopts 'n:' opt
+while getopts 'n:o:' opt
 do
   case $opt in
     n) log_prefix=$OPTARG;;
+    o) outdir=$OPTARG;;
     ?) echo "Unrecognized options $1!"; exit 1;;
   esac
 done
 
 shift $(($OPTIND - 1))
 log_prefix=${log_prefix:-'glo'}
-
-for file in $@
-do
-  prx=$(basename ${file} | sed -E 's/(_L[0-9]_[12])?.f(ast)?q(.gz)?//')
-  ~/toolkit/report_stats -n ${log_prefix} $prx > ../04_NoSC/QC/${prx}_QC_stats.txt
-done
-
-prx=$(basename $1 | sed -E 's/(_L[0-9]_[12])?.f(ast)?q(.gz)?//')
-cat ../04_NoSC/QC/${prx}_QC_stats.txt | cut -f1 > ../04_NoSC/QC/tmp_QC_stats.txt
+outdir=${outdiir:-"../03_Sites/QC/"}
+mkdir -p ${outdir}
 
 for file in "$@"
 do
   prx=$(basename ${file} | sed -E 's/(_L[0-9]_[12])?.f(ast)?q(.gz)?//')
-  join -t $'\t' ../04_NoSC/QC/tmp_QC_stats.txt ../04_NoSC/QC/${prx}_QC_stats.txt > ../04_NoSC/QC/All_QC_stats.txt
-  rm -rf ../04_NoSC/QC/tmp_QC_stats.txt
-  cp ../04_NoSC/QC/All_QC_stats.txt ../04_NoSC/QC/tmp_QC_stats.txt
+  ~/toolkit/report_stats -n ${log_prefix} $prx > ${outdir}/${prx}_QC_stats.txt
 done
 
-rm -rf ../04_NoSC/QC/tmp_QC_stats.txt
+prx=$(basename $1 | sed -E 's/(_L[0-9]_[12])?.f(ast)?q(.gz)?//')
+cat ${outdir}/${prx}_QC_stats.txt | cut -f1 > ${outdir}/tmp_QC_stats.txt
+
+for file in "$@"
+do
+  prx=$(basename ${file} | sed -E 's/(_L[0-9]_[12])?.f(ast)?q(.gz)?//')
+  join -t $'\t' ${outdir}/tmp_QC_stats.txt ${outdir}/${prx}_QC_stats.txt > ${outdir}/All_QC_stats.txt
+  rm -rf ${outdir}/tmp_QC_stats.txt
+  cp ${outdir}/All_QC_stats.txt ${outdir}/tmp_QC_stats.txt
+done
+
+rm -rf ${outdir}/tmp_QC_stats.txt
+mv ${outdir}/All_QC_stats.txt ${outdir}/All_${log_prefix}_QC_stats.txt
 
   

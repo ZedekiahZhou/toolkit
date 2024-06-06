@@ -4,6 +4,7 @@
 #   v2: 2023/12/16, supporting Target-seq (--tools, --species, --combine); supportting duplicates not removing (--no_rmdup); 
 # shellcheck disable=SC2016
 # shellcheck disable=SC2086
+# shellcheck disable=SC2154
 
 ARGS=$(getopt -o 'hi:d:g:p:t:m:' \
   -l 'help,inputfile:,downsample:,species:,thread:,tools:,umi5_len:,umi3_len:,min_len:,fastqc,prx:,untreat,combine,clean_dir:,glori_dir:,only_clean,no_rmdup,gzip,only_glori,m6Am,pipeline:,test' \

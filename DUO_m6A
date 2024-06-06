@@ -42,7 +42,7 @@ done
 if [ ! $thread ]; then thread=20; fi
 
 if [ ! $prx ]; then
-  prx=`basename ${inputfile} | sed -E 's/(_L[0-9]_[12])?.f(ast)?q(.gz)?//'`
+  prx=$(basename ${inputfile} | sed -E 's/(_L[0-9]_[12])?.f(ast)?q(.gz)?//')
 fi
 
 if [ ! $subsample_rate ]; then subsample_rate=0.05; fi
@@ -84,11 +84,12 @@ if [[ ! -d ${dir_nosc} ]]; then mkdir ${dir_nosc}; fi
 
 # I. run GLORI --------
 ## 01. glori preprocessing
-echo -e "\n[ `date` ]: Preprocessing --------"
+echo -e "\n[ $(date) ]: Preprocessing --------"
 glori -i ${inputfile} -g ${species} -m 3 --umi5_len 3 --fastqc --only_clean --gzip 
 
 ## 02. remove tag
-echo -e "\n[ `date` ]: Remove Tag --------"
+echo -e "\n[ $(date) ]: Remove Tag --------"
+
 cutadapt -j 0 -g "TGACGCTGCCGACGATC;rightmost" -m 25 -O 17 -e 0.2 -o ${dir_clean}/${prx}_rmtag.fq --info-file ${dir_clean}/${prx}_rmtag.info ${dir_clean}/${prx}_clean.fq.gz
 if [[ ! -d "../fastqc/rmtag" ]]; then mkdir ../fastqc/rmtag; fi
 fastqc ${dir_clean}/${prx}_rmtag.fq --thread 20 -q -o ../fastqc/rmtag/
@@ -96,9 +97,9 @@ fastqc ${dir_clean}/${prx}_rmtag.fq --thread 20 -q -o ../fastqc/rmtag/
 if [[ "" ]]; then
   ## downsample
   target_reads=41000000
-  n_reads=`samtools view -c ${dir_sites}/${prx}_merged.sorted.bam`
-  dsr=`echo "scale=4;${target_reads}/${n_reads}" | bc`
-  if (( `echo ${dsr} '> 1' | bc` )); then dsr=.9999; fi
+  n_reads=$(samtools view -c ${dir_sites}/${prx}_merged.sorted.bam)
+  dsr=$(echo "scale=4;${target_reads}/${n_reads}" | bc)
+  if (( $(echo ${dsr} '> 1' | bc) )); then dsr=.9999; fi
   samtools view -@ 4 -s 0${dsr} -b ${dir_sites}/${prx}_merged.sorted.bam > ${dir_sites}/${prx}_ds_merged.sorted.bam
   samtools index ${dir_sites}/${prx}_ds_merged.sorted.bam
   prx=${prx}_ds
