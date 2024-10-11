@@ -5,31 +5,31 @@ do
   case $opt in
     n) log_prefix=$OPTARG;;
     o) output=$OPTARG;;
+    c) config=$OPTARG;;
     ?) echo "Unrecognized options $1!"; exit 1;;
   esac
 done
 
 shift $(($OPTIND - 1))
 log_prefix=${log_prefix:-'glo'}
+config=${config:-'config'}
 outdir=$(dirname ${output})
 mkdir -p ${outdir}
 
 # genarate QC stats for each sample
-for file in "$@"
+awk '{print $1}' ${config} | while read prx
 do
-  prx=$(basename ${file} | sed -E 's/(_[LS][0-9]+_R?[12])?.f(ast)?q(.gz)?//')
   echo ${prx}
   ~/toolkit/report_stats -n ${log_prefix} $prx > ${outdir}/${prx}_QC_stats.txt
 done
 
 # get row names of stats file
-prx=$(basename $1 | sed -E 's/(_[LS][0-9]+_R?[12])?.f(ast)?q(.gz)?//')
+prx=$(head -n 1 ${config} | awk '{print $1}')
 cat ${outdir}/${prx}_QC_stats.txt | cut -f1 > ${outdir}/tmp_QC_stats.txt
 
 # merge stats files
-for file in "$@"
+awk '{print $1}' ${config} | while read prx
 do
-  prx=$(basename ${file} | sed -E 's/(_[LS][0-9]+_R?[12])?.f(ast)?q(.gz)?//')
   join -t $'\t' ${outdir}/tmp_QC_stats.txt ${outdir}/${prx}_QC_stats.txt > ${output}
   cp -f ${output} ${outdir}/tmp_QC_stats.txt
 done
