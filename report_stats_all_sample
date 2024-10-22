@@ -1,35 +1,40 @@
 #!/bin/bash
 
-while getopts 'n:o:' opt
+while getopts 'n:o:c:s:' opt
 do
   case $opt in
     n) log_prefix=$OPTARG;;
     o) output=$OPTARG;;
     c) config=$OPTARG;;
+    s) suffix=$OPTARG;;
     ?) echo "Unrecognized options $1!"; exit 1;;
   esac
 done
 
-shift $(($OPTIND - 1))
+#shift $(($OPTIND - 1))
 log_prefix=${log_prefix:-'glo'}
 config=${config:-'config'}
+suffix=${suffix:-''}
 outdir=$(dirname ${output})
 mkdir -p ${outdir}
 
 # genarate QC stats for each sample
 awk '{print $1}' ${config} | while read prx
 do
+  prx=${prx}${suffix}
   echo ${prx}
   ~/toolkit/report_stats -n ${log_prefix} $prx > ${outdir}/${prx}_QC_stats.txt
 done
 
 # get row names of stats file
 prx=$(head -n 1 ${config} | awk '{print $1}')
+prx=${prx}${suffix}
 cat ${outdir}/${prx}_QC_stats.txt | cut -f1 > ${outdir}/tmp_QC_stats.txt
 
 # merge stats files
 awk '{print $1}' ${config} | while read prx
 do
+  prx=${prx}${suffix}
   join -t $'\t' ${outdir}/tmp_QC_stats.txt ${outdir}/${prx}_QC_stats.txt > ${output}
   cp -f ${output} ${outdir}/tmp_QC_stats.txt
 done
