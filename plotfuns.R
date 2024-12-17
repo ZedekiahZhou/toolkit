@@ -15,7 +15,11 @@ get_density <- function(x, y, ...) {
 }
 
 # fill na as 0
-fill_na_as_0 <- function(df, x_sams) {
+fill_na_as_0 <- function(df, x_sams = NULL) {
+    if (is.null(x_sams)) {  
+        x_sams = colnames(df)[grepl("AGcov_", colnames(df))]
+        x_sams = sub("AGcov_", "", x_sams)
+    }
     for (sam in x_sams) {
         df[, paste0("AGcov_", sam)] = ifelse(is.na(df[, paste0("AGcov_", sam)]), 
                                             0, df[, paste0("AGcov_", sam)])
@@ -30,17 +34,35 @@ fill_na_as_0 <- function(df, x_sams) {
 
 # write out as Bismark format ----
 write2Bis <- function(df, x_sams, outdir = "../03_Sites") {
-    for (sam in x_sams) {
+    for (sam in x_sams) {                                                                                               
         used_col = c("Chr", "Start", "End", "Strand", "Ratio", "AGcov", "Acov")
         bis = df %>% mutate(
             Start = Pos - 1,
             End = Pos,
             AGcov = .data[[paste0("AGcov_", sam)]],
             Acov = .data[[paste0("Acov_", sam)]],
-            Ratio = .data[[paste0("Ratio_", sam)]]
+            Ratio = Acov/AGcov*100
         )
         bis = bis[, used_col]
         write.table(bis, file = paste0(outdir, sam, ".cov"), sep = "\t",
+                    row.names = F, col.names = F, quote = F)
+    }
+}
+
+write2BisCoverage <- function(df, x_sams, outdir = "../03_Sites") {
+    for (sam in x_sams) {
+        used_col = c("Chr", "Start", "End", "Ratio", "Acov", "Gcov")
+        # all positions are 1-based
+        bis = df %>% mutate(
+            Start = Pos,
+            End = Pos,
+            AGcov = .data[[paste0("AGcov_", sam)]],
+            Acov = .data[[paste0("Acov_", sam)]],
+            Gcov = AGcov - Acov,
+            Ratio = Acov/AGcov*100
+        )
+        bis = bis[, used_col]
+        write.table(bis, file = paste0(outdir, sam, ".biscov"), sep = "\t",
                     row.names = F, col.names = F, quote = F)
     }
 }
@@ -102,8 +124,8 @@ fun_pden2d <- function(df, sam1, sam0, dotsize = 0.3,
     get_plot = function(dfplot) {
         if (use_common) dfplot = dfplot[dfplot$Passed_both, ]
         p1 = ggplot(dfplot, 
-                    aes(.data[[paste0("Ratio_", sam1)]], 
-                        .data[[paste0("Ratio_", sam0)]]))
+                    aes(y = .data[[paste0("Ratio_", sam1)]], 
+                        x = .data[[paste0("Ratio_", sam0)]]))
         if (useMASS) {
             dfplot$density = get_density(dfplot[[paste0("Ratio_", sam1)]], 
                                          dfplot[[paste0("Ratio_", sam0)]], n = MASS_para_n)
@@ -152,6 +174,7 @@ fun_pden1d <- function(df, sam1, sam0,
                    group = sam0)
     )
     if (use_respective) dfplot = dfplot[dfplot$Passed, ]
+    dfplot$group = factor(dfplot$group, levels = c(sam1, sam0))
     
     p1 = ggplot(dfplot, aes(x = Ratio, color = group)) + 
         geom_density() + 

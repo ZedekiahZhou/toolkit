@@ -1,8 +1,20 @@
 #!/bin/bash
 
-while getopts 'n:o:c:s:' opt
+USAGE='
+usage: report_stats [options]
+
+-h		print this help text and exit
+-n		prefix of log file to search stats, default is "glo"
+-o		output stats file, default is "../03_Sites/mapping-info/Merged_QC_stats.txt"  
+-c		config file, default is "./config"
+-s		suffix of sample name, default is ""
+'
+
+while getopts 'hn:o:c:s:' opt
 do
   case $opt in
+    h) echo "$USAGE"
+       exit 1;;
     n) log_prefix=$OPTARG;;
     o) output=$OPTARG;;
     c) config=$OPTARG;;
@@ -13,7 +25,8 @@ done
 
 #shift $(($OPTIND - 1))
 log_prefix=${log_prefix:-'glo'}
-config=${config:-'config'}
+output=${output:-'../03_Sites/mapping-info/Merged_QC_stats.txt'}
+config=${config:-'./config'}
 suffix=${suffix:-''}
 outdir=$(dirname ${output})
 mkdir -p ${outdir}

@@ -1,4 +1,5 @@
 #!/bin/bash
+shopt -s extglob # enable extended pattern matching
 
 ARGS=$(getopt -o 'hn:' -l 'help,log_prefix:,dir_mapping_log:,dir_sites:,dir_nosc:' -n "$0" -- "$@")
 if [ $? != 0 ] ; then echo "Parse error! Terminating..." >&2 ; exit 1 ; fi
@@ -58,7 +59,7 @@ echo -e "Number of input reads for mapping:\t${input}"
 
 m1=$(cat ${dir_mapping_log}/${sam}.Log.final.out | grep "Uniquely mapped reads number" | sed 's/^.*\t//g')
 m2=$(cat ${dir_mapping_log}/${sam}_rvs.Log.final.out | grep "Uniquely mapped reads number" | sed 's/^.*\t//g')
-m3=$(cat ${dir_mapping_log}/${sam}_[tu][nf].sam.output | grep "Reported" | sed 's/Reported //g' | sed 's/ alignments//g')
+m3=$(cat ${dir_mapping_log}/${sam}?(_tf|_un).sam.output | grep "Reported" | sed 's/Reported //g' | sed 's/ alignments//g')
 echo -e "Uniquely mapped reads number to genome:\t${m1}"
 echo -e "Uniquely mapped reads number to rvs:\t${m2}"
 echo -e "Uniquely mapped reads number to tf:\t${m3}"
