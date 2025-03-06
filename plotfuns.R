@@ -6,6 +6,8 @@ require(patchwork)
 require(methylKit)
 require(MASS)
 
+pden_color = rev(RColorBrewer::brewer.pal(11, "RdBu"))
+
 get_density <- function(x, y, ...) {
     dens <- MASS::kde2d(x, y, ...)
     ix <- findInterval(x, dens$x)
@@ -119,7 +121,7 @@ fun_pden2d <- function(df, sam1, sam0, dotsize = 0.3,
                      label = FALSE, adjust = 0.03, plot_count = FALSE, main = "", 
                      use_common = FALSE, split_coding = FALSE, useMASS = FALSE, MASS_para_n = 100
 ) {
-    mycolor = rev(RColorBrewer::brewer.pal(11, "RdBu"))
+    
     
     get_plot = function(dfplot) {
         if (use_common) dfplot = dfplot[dfplot$Passed_both, ]
@@ -137,7 +139,7 @@ fun_pden2d <- function(df, sam1, sam0, dotsize = 0.3,
             geom_abline(slope = 1, linetype = "dashed", color = "black") + 
             geom_abline(slope = 1, intercept = 10, linetype = "dashed", color = "red4") + 
             geom_abline(slope = 1, intercept = -10, linetype = "dashed", color = "red4") +
-            scale_color_gradientn(colors = mycolor) + 
+            scale_color_gradientn(colors = pden_color) + 
             theme_classic() + xlim(0, 100) + ylim(0, 100)
         if (label) {
             p1 = p1 + ggrepel::geom_text_repel(mapping = aes(label = label), min.segment.length = 0)
