@@ -11,7 +11,7 @@ mydir = "05_m6A/"
 
 
 # I. load data ===========================
-file = "03_Sites/merged_m6A.m6A.passed"
+file = "03_Sites/merged_m6A_FTOOE_nods.m6A.passed"
 m6A = data.table::fread(file, na.strings = ".") %>%
   data.frame() %>%
   fill_na_as_0()
@@ -24,22 +24,23 @@ write2BisCoverage(m6A, x_sams = sams, outdir = mydir)
 
 # II. compare reps =======================
 sams
-qc_reps(m6A, sams[1:3], fout = "05_m6A/QC_reps_293T_Ctrl.pdf")
-qc_reps(m6A, sams[4:5], fout = "05_m6A/QC_reps_PCIF1.KO.pdf")
-qc_reps(m6A, sams[6:7], fout = "05_m6A/QC_reps_STM2457.pdf")
+qc_reps(m6A, sams[1:3], fout = "05_m6A/QC_reps_293T_FTO_OE_nods.pdf")
+qc_reps(m6A, sams[4:6], fout = "05_m6A/QC_reps_293T_OE_Vector_nods.pdf")
 
 
 
 # III. select samples to perform DE =======================
 sams
-# sams = sams[c(-3, -6)] # only keep two reps
-sams
+comps = data.frame(ctrl = c("293T.OE.Vector"), 
+                   case = c("293T.FTO.OE"))
+
 cutoff_fdr = 0.05
 cutoff_diff = 15
-ctrl = "293T"
-ncase = 2
+ncase = 3
 nctrl = 3
-for (case in c("PCIF1.KO", "STM2457")) {
+for (i in 1:nrow(comps)) {
+  ctrl = comps[i, "ctrl"]
+  case = comps[i, "case"]
   x_sams = sams[c(grep(case, sams), grep(ctrl, sams))]
   treatment = c(rep(case, ncase), rep(ctrl, nctrl))
   
@@ -60,7 +61,7 @@ for (case in c("PCIF1.KO", "STM2457")) {
   names(lsites) = c(case, ctrl)
   p = plot(euler(lsites), quantities = T, 
            fill = RColorBrewer::brewer.pal(3, "Set2")[2:3], 
-           main = "Sites passed in 2 of 3 reps\n(Either Group)")
+           main = paste("Sites passed in", required_sams[case], "of", ncase, "reps\n(Either Group)"))
   p$vp$width = unit(0.7, "npc")
   p$vp$height = unit(0.7, "npc")
   print(p)
@@ -116,7 +117,7 @@ for (case in c("PCIF1.KO", "STM2457")) {
   names(lsites) = c(case, ctrl)
   p = plot(euler(lsites), quantities = T, 
            fill = RColorBrewer::brewer.pal(3, "Set2")[2:3], 
-           main = "Sites covered in 2 of 3 reps\n(Both Group, for DA)")
+           main = paste("Sites covered in", required_sams[case], "of", ncase, "reps\n(Both Group, for DA)"))
   p$vp$width = unit(0.7, "npc")
   p$vp$height = unit(0.7, "npc")
   print(p)
@@ -132,12 +133,11 @@ for (case in c("PCIF1.KO", "STM2457")) {
     geom_abline(slope = 1, intercept = -15, linetype = "dashed", color = "red") + 
     scale_x_continuous(limits = c(0, 100), breaks = seq(0, 100, 20), expand = c(0.02, 0.02)) + 
     scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, 20), expand = c(0.02, 0.02)) + 
-    coord_fixed() + 
     xlab(paste("m6A level in", ctrl, "(%)")) + 
     ylab(paste("m6A level in", case, "(%)")) + 
     scale_color_gradientn(colours = pden_color) + 
     theme_bw() + 
-    theme(panel.grid = element_blank()) + 
+    theme(panel.grid = element_blank(), aspect.ratio = 1) + 
     ggtitle(paste0(case, " vs ", ctrl, "\n", 
                    "Up_", sum(df_short$Alteration == "Up"), " | ", 
                    "NonSig_", sum(df_short$Alteration == "NonSig"), " | ", 
@@ -156,6 +156,7 @@ for (case in c("PCIF1.KO", "STM2457")) {
     scale_color_manual(values = valcano_color) + 
     xlab("Differential m6A level (%)") + 
     ylab("-log10(FDR)") + 
+    theme(aspect.ratio = 1) + 
     ggtitle(paste0(case, " vs ", ctrl, "\n", 
                    "Up_", sum(df_short$Alteration == "Up"), " | ", 
                    "NonSig_", sum(df_short$Alteration == "NonSig"), " | ", 
@@ -172,7 +173,8 @@ for (case in c("PCIF1.KO", "STM2457")) {
     stat_ecdf() + 
     xlab("m6A level (%)") + ylab("Cumulative fraction") + 
     scale_color_manual(values = ecdf_color) + 
-    theme_classic()
+    theme_classic() + 
+    theme(aspect.ratio = 1)
   
   box_color = c(ggsci::pal_npg(alpha = 0.8)(10)[c(1,4)])
   names(box_color) = c(case, ctrl)
@@ -181,6 +183,7 @@ for (case in c("PCIF1.KO", "STM2457")) {
     scale_fill_manual(values = box_color) + 
     theme_classic() + 
     ylab("m6A level (%)") + 
+    theme(aspect.ratio = 2) + 
     ggpubr::stat_compare_means()
   
   

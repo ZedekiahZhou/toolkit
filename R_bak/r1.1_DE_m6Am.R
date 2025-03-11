@@ -31,13 +31,18 @@ qc_reps(m6A, sams[4:6], fout = paste0(mydir, "QC_reps_HPNE.pdf"))
 
 # III. select samples to perform DE =======================
 sams
+comps = data.frame(ctrl = c("293T.OE.Vector"), 
+                   case = c("293T.FTO.OE"))
+
 cutoff_fdr = 0.05
 cutoff_diff = 15
-for (case in c("AsPC.1")) {
-  # change index of ctrl samples
-  ctrl = "HPNE"
-  x_sams = sams[c(grep(case, sams), 4:6)]
-  treatment = c(rep(case, 3), rep(ctrl, 3))
+ncase = 3
+nctrl = 3
+for (i in 1:nrow(comps)) {
+  ctrl = comps[i, "ctrl"]
+  case = comps[i, "case"]
+  x_sams = sams[c(grep(case, sams), grep(ctrl, sams))]
+  treatment = c(rep(case, ncase), rep(ctrl, nctrl))
   
   required_sams = c(2, 2)
   names(required_sams) = c(case, ctrl)
@@ -56,7 +61,7 @@ for (case in c("AsPC.1")) {
   names(lsites) = c(case, ctrl)
   p = plot(euler(lsites), quantities = T, 
            fill = RColorBrewer::brewer.pal(3, "Set2")[2:3], 
-           main = "Sites passed in 2 of 3 reps\n(Either Group)")
+           main = paste("Sites passed in", required_sams[case], "of", ncase, "reps\n(Either Group)"))
   p$vp$width = unit(0.7, "npc")
   p$vp$height = unit(0.7, "npc")
   print(p)
@@ -112,7 +117,7 @@ for (case in c("AsPC.1")) {
   names(lsites) = c(case, ctrl)
   p = plot(euler(lsites), quantities = T, 
            fill = RColorBrewer::brewer.pal(3, "Set2")[2:3], 
-           main = "Sites covered in 2 of 3 reps\n(Both Group, for DA)")
+           main = paste("Sites covered in", required_sams[case], "of", ncase, "reps\n(Both Group, for DA)"))
   p$vp$width = unit(0.7, "npc")
   p$vp$height = unit(0.7, "npc")
   print(p)
@@ -128,12 +133,11 @@ for (case in c("AsPC.1")) {
     geom_abline(slope = 1, intercept = -15, linetype = "dashed", color = "red") + 
     scale_x_continuous(limits = c(0, 100), breaks = seq(0, 100, 20), expand = c(0.02, 0.02)) + 
     scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, 20), expand = c(0.02, 0.02)) + 
-    coord_fixed() + 
     xlab(paste("m6Am level in", ctrl, "(%)")) + 
     ylab(paste("m6Am level in", case, "(%)")) + 
     scale_color_gradientn(colours = pden_color) + 
     theme_bw() + 
-    theme(panel.grid = element_blank()) + 
+    theme(panel.grid = element_blank(), aspect.ratio = 1) + 
     ggtitle(paste0(case, " vs ", ctrl, "\n", 
                    "Up_", sum(df_short$Alteration == "Up"), " | ", 
                    "NonSig_", sum(df_short$Alteration == "NonSig"), " | ", 
@@ -152,6 +156,7 @@ for (case in c("AsPC.1")) {
     scale_color_manual(values = valcano_color) + 
     xlab("Differential m6Am level (%)") + 
     ylab("-log10(FDR)") + 
+    theme(aspect.ratio = 1) + 
     ggtitle(paste0(case, " vs ", ctrl, "\n", 
                    "Up_", sum(df_short$Alteration == "Up"), " | ", 
                    "NonSig_", sum(df_short$Alteration == "NonSig"), " | ", 
@@ -168,7 +173,8 @@ for (case in c("AsPC.1")) {
     stat_ecdf() + 
     xlab("m6Am level (%)") + ylab("Cumulative fraction") + 
     scale_color_manual(values = ecdf_color) + 
-    theme_classic()
+    theme_classic() + 
+    theme(aspect.ratio = 1)
   
   box_color = c(ggsci::pal_npg(alpha = 0.8)(10)[c(1,4)])
   names(box_color) = c(case, ctrl)
@@ -177,6 +183,7 @@ for (case in c("AsPC.1")) {
     scale_fill_manual(values = box_color) + 
     theme_classic() + 
     ylab("m6Am level (%)") + 
+    theme(aspect.ratio = 2) + 
     ggpubr::stat_compare_means()
   
   

@@ -11,7 +11,7 @@ pden_color = rev(RColorBrewer::brewer.pal(11, "RdYlBu"))
 
 # I. preprocessing ==========
 ## fill na as 0
-fill_na_as_0 <- function(df, x_sams = NULL) {
+fill_na_as_0 <- function(df, x_sams = NULL, AG_cutoff = 15) {
   if (is.null(x_sams)) {  
     x_sams = colnames(df)[grepl("AGcov_", colnames(df))]
     x_sams = sub("AGcov_", "", x_sams)
@@ -21,7 +21,7 @@ fill_na_as_0 <- function(df, x_sams = NULL) {
                                          0, df[, paste0("AGcov_", sam)])
     df[, paste0("Acov_", sam)] = ifelse(is.na(df[, paste0("Acov_", sam)]), 
                                         0, df[, paste0("Acov_", sam)])
-    df[, paste0("Ratio_", sam)] = ifelse(df[, paste0("AGcov_", sam)] == 0, 0, 
+    df[, paste0("Ratio_", sam)] = ifelse(df[, paste0("AGcov_", sam)] < AG_cutoff, NA, 
                                          df[, paste0("Acov_", sam)]/df[, paste0("AGcov_", sam)]*100)
   }
   return(df)
@@ -55,9 +55,9 @@ select_sams <- function(
     group1 = unique(treatment)[1]
     group0 = unique(treatment)[2]
     info_df[[paste0("Ratio_", group1)]] = rowMeans(data_df[, paste0("Ratio_", x_sams[treatment == group1]),
-                                                           drop = F])
+                                                           drop = F], na.rm = T)
     info_df[[paste0("Ratio_", group0)]] = rowMeans(data_df[, paste0("Ratio_", x_sams[treatment == group0]), 
-                                                           drop = F])
+                                                           drop = F], na.rm = T)
     info_df[[paste0("PassedSam_", group1)]] = apply(data_df[, paste0("Passed_", x_sams[treatment == group1]), 
                                                          drop = F], 1, sum)
     info_df[[paste0("PassedSam_", group0)]] = apply(data_df[, paste0("Passed_", x_sams[treatment == group0]), 
