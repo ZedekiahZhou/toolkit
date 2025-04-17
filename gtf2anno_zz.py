@@ -22,8 +22,10 @@ if __name__ == "__main__":
     output = options.output
 
     if not output:
-        output = input[:-3] + "anno"
-    output_longest = output[:-4] + "longest.anno"
+        output = input[:-3] + "tbl"
+        output_longest = input[:-3] + "longest.tbl"
+    else:
+        output_longest = output + ".longest"
 
     with open(input, "r") as gtf:
         line = gtf.readline()

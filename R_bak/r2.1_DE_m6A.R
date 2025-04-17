@@ -11,7 +11,7 @@ mydir = "05_m6A/"
 
 
 # I. load data ===========================
-file = "03_Sites/merged_m6A_FTOOE_nods.m6A.passed"
+file = "03_Sites/merged_m6A_All_ds.m6A.passed"
 m6A = data.table::fread(file, na.strings = ".") %>%
   data.frame() %>%
   fill_na_as_0()
@@ -24,15 +24,26 @@ write2BisCoverage(m6A, x_sams = sams, outdir = mydir)
 
 # II. compare reps =======================
 sams
-qc_reps(m6A, sams[1:3], fout = "05_m6A/QC_reps_293T_FTO_OE_nods.pdf")
-qc_reps(m6A, sams[4:6], fout = "05_m6A/QC_reps_293T_OE_Vector_nods.pdf")
-
+lpatterm = c("293T.Ctrl_ds70M" = "^293T.H2O2.un.m6A.[1-3]_ds70M_ds$", 
+             "293T.H2O2_ds70M" = "^293T.H2O2.1000.2.m6A.[1-3]_ds70M_ds$",
+             "P1KO.Ctrl_ds70M" = "^PCIF1.KO.H2O2.un.m6A.[1-3]_ds70M_ds$", 
+             "P1KO.H2O2_ds70M" = "^PCIF1.KO.H2O2.1000.2.m6A.[1-3]_ds70M_ds$", 
+             "P1KO.Ctrl_ds220M" = "^PCIF1.KO.H2O2.un.m6A.[1-3]_ds220M_ds$", 
+             "P1KO.H2O2_ds220M" = "^PCIF1.KO.H2O2.1000.2.m6A.[1-3]_ds220M_ds$")
+for (case in names(lpatterm)) {
+  qc_reps(m6A, sams[grep(lpatterm[case], sams)], 
+          fout = paste0(mydir, "QC_reps_", case, ".pdf"))
+}
 
 
 # III. select samples to perform DE =======================
 sams
-comps = data.frame(ctrl = c("293T.OE.Vector"), 
-                   case = c("293T.FTO.OE"))
+comps = data.frame(ctrl = c("293T.Ctrl_ds70M", "P1KO.Ctrl_ds70M", "P1KO.Ctrl_ds220M", 
+                            "293T.Ctrl_ds70M", "293T.H2O2_ds70M", 
+                            "P1KO.Ctrl_ds70M", "P1KO.H2O2_ds70M"), 
+                   case = c("293T.H2O2_ds70M", "P1KO.H2O2_ds70M", "P1KO.H2O2_ds220M",
+                            "P1KO.Ctrl_ds70M", "P1KO.H2O2_ds70M", 
+                            "P1KO.Ctrl_ds220M", "P1KO.H2O2_ds220M"))
 
 cutoff_fdr = 0.05
 cutoff_diff = 15
@@ -41,7 +52,7 @@ nctrl = 3
 for (i in 1:nrow(comps)) {
   ctrl = comps[i, "ctrl"]
   case = comps[i, "case"]
-  x_sams = sams[c(grep(case, sams), grep(ctrl, sams))]
+  x_sams = sams[c(grep(lpatterm[case], sams), grep(lpatterm[ctrl], sams))]
   treatment = c(rep(case, ncase), rep(ctrl, nctrl))
   
   required_sams = c(2, 2)

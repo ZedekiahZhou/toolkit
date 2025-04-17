@@ -7,11 +7,11 @@ library(ggpointdensity)
 library(methylSig)
 library(RColorBrewer)
 source("~/toolkit/funs2.R")
-mydir = "Duo/04_m6Am/"
+mydir = "04_m6Am/"
 
 
 # I. load data ===========================
-file = "Duo/03_Sites/merged_m6Am.m6Am.passed"
+file = "03_Sites/merged_m6Am_U937.m6Am.passed"
 m6A = data.table::fread(file, na.strings = ".") %>%
   data.frame() %>%
   fill_na_as_0() %>%
@@ -25,15 +25,19 @@ write2BisCoverage(m6A, x_sams = sams, outdir = mydir)
 
 # II. compare reps =======================
 sams
-qc_reps(m6A, sams[1:3], fout = paste0(mydir, "QC_reps_AsPC.1.pdf"))
-qc_reps(m6A, sams[4:6], fout = paste0(mydir, "QC_reps_HPNE.pdf"))
+lpatterm = c("U937.WT" = "^U937[.WT]*.m6Am.[12][_ds]*$", 
+             "U937.CS1" = "^U937.CS1.m6Am.[1-3]_ds$",
+             "U937.FB23.2" = "^U937.FB23.2.m6Am.[1-3]_ds$")
+for (case in names(lpatterm)) {
+  qc_reps(m6A, sams[grep(lpatterm[case], sams)], 
+          fout = paste0(mydir, "QC_reps_", case, ".pdf"))
+}
 
 
 # III. select samples to perform DE =======================
 sams
-comps = data.frame(ctrl = c("293T.OE.Vector"), 
-                   case = c("293T.FTO.OE"))
-
+comps = data.frame(ctrl = c("U937.WT", "U937.WT"), 
+                   case = c("U937.CS1", "U937.FB23.2"))
 cutoff_fdr = 0.05
 cutoff_diff = 15
 ncase = 3
@@ -41,14 +45,14 @@ nctrl = 3
 for (i in 1:nrow(comps)) {
   ctrl = comps[i, "ctrl"]
   case = comps[i, "case"]
-  x_sams = sams[c(grep(case, sams), grep(ctrl, sams))]
+  x_sams = sams[c(grep(lpatterm[case], sams), grep(lpatterm[ctrl], sams))]
   treatment = c(rep(case, ncase), rep(ctrl, nctrl))
   
   required_sams = c(2, 2)
   names(required_sams) = c(case, ctrl)
   
   
-  pdf(paste0(mydir, "DEplot_", case, ".pdf"), width = 4, height = 4)
+  pdf(paste0(mydir, "DEplot_", case, "_vs_", ctrl, ".pdf"), width = 4, height = 4)
   ## pre-filter sites passed in 2 samples of 3 (EITHER group)
   cand = select_sams(m6A, x_sams, addtional_col = T, 
                      treatment = treatment, min_samples_per_group = required_sams) %>%
@@ -107,7 +111,7 @@ for (i in 1:nrow(comps)) {
   table(df_diff_sig$Alteration)
   df_diff_sig = inner_join(df_diff_sig, cand, 
                            by = join_by("seqnames"=="Chr", "end"=="Pos"))
-  write.table(df_diff_sig, paste0(mydir, "DEtable_", case, ".tsv"), 
+  write.table(df_diff_sig, paste0(mydir, "DEtable_", case, "_vs_", ctrl, ".tsv"), 
               quote = F, sep = "\t", row.names = F)
   
   ## Euler of used 
