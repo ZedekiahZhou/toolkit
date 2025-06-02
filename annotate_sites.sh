@@ -53,12 +53,12 @@ rm -rf ${sites}.bed ${sites}_annot.bed
 source activate zzhou_bio2
 
 # 02. get bases around m6A sites
-echo -e "\n[ $(date) ]: Get 5 bases around sites --------"
+echo -e "\n[ $(date) ]: Get ${motif_len} bases around sites --------"
 if [[ ${methyl} == "m6A" ]]; then
-  cat ${sites} | awk -v OFS='\t' 'NR!=1 && $2>=3 {print $1, $2-3, $2+2, $4, 0, $3}' \
+  cat ${sites} | awk -v OFS='\t' -v l="$(( motif_len / 2 ))" 'NR!=1 && $2>=3 {print $1, $2-l-1, $2+l, $4, 0, $3}' \
     > ${sites}_len${motif_len}.bed
 else
-  cat ${sites} | awk -v OFS='\t' 'NR!=1 && $2>=3 {print $1, $2-3, $2+2, $5, 0, $3}' \
+  cat ${sites} | awk -v OFS='\t' -v l="$(( motif_len / 2 ))" 'NR!=1 && $2>=3 {print $1, $2-l-1, $2+l, $5, 0, $3}' \
     > ${sites}_len${motif_len}.bed
 fi
 bedtools getfasta -s -fi ${genome2} -bed ${sites}_len${motif_len}.bed -bedOut > ${sites}_len${motif_len}_motif.bed
